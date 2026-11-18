@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Partyline voice room server
+After=rnsd.service
+Requires=rnsd.service
+
+[Service]
+User={{ reticulum_host_user }}
+ExecStart={{ reticulum_host_venv }}/bin/partyline-server \
+  --config {{ reticulum_host_partyline_dir }}/server.json \
+  --statedir {{ reticulum_host_partyline_dir }} \
+  --configdir {{ reticulum_host_rns_dir }} \
+  --stats-interval 3600
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

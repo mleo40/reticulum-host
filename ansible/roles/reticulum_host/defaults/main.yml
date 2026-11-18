@@ -7,6 +7,7 @@ reticulum_host_home: /var/lib/reticulum
 reticulum_host_rns_dir: "{{ reticulum_host_home }}/rns"
 reticulum_host_retibbs_dir: "{{ reticulum_host_home }}/retibbs"
 reticulum_host_rngit_dir: "{{ reticulum_host_home }}/rngit"
+reticulum_host_partyline_dir: "{{ reticulum_host_home }}/partyline"
 
 reticulum_host_install_dir: /opt/reticulum
 reticulum_host_venv: "{{ reticulum_host_install_dir }}/venv"
@@ -15,11 +16,12 @@ reticulum_host_retibbs_repo: https://github.com/kc1awv/RetiBBS.git
 reticulum_host_retibbs_version: 7c26d2c05e945f67382695d2f8de21abdb6d7020
 reticulum_host_retibbs_checkout: "{{ reticulum_host_install_dir }}/RetiBBS"
 
-reticulum_host_apt_packages: [git, ansible, python3-venv, sqlite3, ca-certificates]
+# libopus0 and libogg0 are the Opus codec for partyline
+reticulum_host_apt_packages: [git, ansible, python3-venv, sqlite3, ca-certificates, libopus0, libogg0]
 
 # Commands from the venv linked into /usr/local/bin
 reticulum_host_commands: [rnsd, rnstatus, rnpath, rnprobe, rncp, rnx, rnid, rnir, rnodeconf, rnsh, rnpkg, rngit,
-                          rngcs, git-remote-rns, lxmd, nomadnet]
+                          rngcs, git-remote-rns, lxmd, nomadnet, partyline-server, partyline-client]
 
 reticulum_host_enable_transport: true
 reticulum_host_loglevel: 4
@@ -32,8 +34,19 @@ reticulum_host_bbs_name: Reticulum BBS
 reticulum_host_bbs_announce_interval: 300
 reticulum_host_bbs_theme: radio
 
+# Partyline voice rooms; profiles: opus-high, opus-med, opus-low, c2-3200, c2-2400, c2-1200, c2-700, music-*
+reticulum_host_partyline_name: Reticulum voice
+reticulum_host_partyline_motd: Welcome. Be kind, keep it short on slow links.
+reticulum_host_partyline_profile: opus-med
+reticulum_host_partyline_max_members: 16
+# Identity hashes of operators, who can kick, mute and move users
+reticulum_host_partyline_ops: []
+reticulum_host_partyline_rooms:
+  - {name: Lobby, description: Open to everyone}
+  - {name: Low bandwidth, profile: c2-1200, description: Codec2 for slow links}
+
 # Systemd units to enable; lxmd is installed but not run by default
-reticulum_host_services: [rnsd, retibbs, rngit]
+reticulum_host_services: [rnsd, retibbs, rngit, partyline]
 
 # Show this host's Reticulum addresses in the console login banner, and in the SSH login banner
 reticulum_host_banner: true

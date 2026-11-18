@@ -24,7 +24,7 @@
     group: "{{ reticulum_host_user }}"
     mode: "0750"
   loop: ["{{ reticulum_host_home }}", "{{ reticulum_host_rns_dir }}", "{{ reticulum_host_retibbs_dir }}",
-         "{{ reticulum_host_rngit_dir }}", "{{ reticulum_host_retibbs_dir }}/themes"]
+         "{{ reticulum_host_retibbs_dir }}/themes", "{{ reticulum_host_rngit_dir }}", "{{ reticulum_host_partyline_dir }}"]
 
 - name: Create the install directory
   ansible.builtin.file:
@@ -78,6 +78,15 @@
     mode: "0640"
   notify: Restart reticulum services
 
+- name: Write the partyline config
+  ansible.builtin.template:
+    src: partyline.json.j2
+    dest: "{{ reticulum_host_partyline_dir }}/server.json"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+  notify: Restart reticulum services
+
 - name: Install the RetiBBS default theme
   ansible.builtin.copy:
     src: "{{ reticulum_host_retibbs_checkout }}/server/themes/default/"
@@ -103,7 +112,7 @@
     src: "{{ item }}.service.j2"
     dest: "/etc/systemd/system/{{ item }}.service"
     mode: "0644"
-  loop: [rnsd, retibbs, rngit, lxmd]
+  loop: [rnsd, retibbs, rngit, partyline, lxmd]
   notify: Restart reticulum services
 
 - name: Enable services

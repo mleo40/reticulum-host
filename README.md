@@ -1,7 +1,7 @@
 # reticulum-host
 
-Sets up a Debian machine as a Reticulum host: a shared Reticulum node, a RetiBBS bulletin board and a Reticulum git
-node, each running as a service.
+Sets up a Debian machine as a Reticulum host: a shared Reticulum node, a RetiBBS bulletin board, Partyline voice rooms
+and a Reticulum git node, each running as a service.
 
 There are two ways to use it:
 
@@ -19,35 +19,45 @@ per-machine identifiers from the image and fails if any remain.
   `rngit`, `rngcs` and `git-remote-rns` (so `git clone rns://...` works)
 - `lxmf` 1.3.1 (`lxmd`) and `nomadnet` 1.5.0
 - RetiBBS at a pinned commit in `/opt/reticulum/RetiBBS`, with a short "radio" theme for low bandwidth links
+- Partyline 1.0.5 (`partyline-server`, `partyline-client`) with two rooms: Lobby (Opus 8 kbps) and Low bandwidth
+  (Codec2 1200 bps)
 - `git` and `ansible`, so the host can configure other machines the same way
-- The host's Reticulum addresses (transport identity, RetiBBS, rngit) and TCP address in the console login banner
-  and the SSH login banner, written at boot once the services have created their identities
+- The host's Reticulum addresses (transport identity, RetiBBS, Partyline, rngit) and TCP address in the console login
+  banner and the SSH login banner, written at boot once the services have created their identities
 - Services running as the `reticulum` user, with data in `/var/lib/reticulum`:
 
   | Service | What it does | Enabled |
   |---|---|---|
   | `rnsd` | Shared Reticulum instance, AutoInterface plus TCP server on port 4242 | yes |
   | `retibbs` | RetiBBS server | yes |
+  | `partyline` | Partyline voice room server | yes |
   | `rngit` | Reticulum git repository node | yes |
   | `lxmd` | LXMF router and propagation node | no |
 
 ## Compatibility
 
-- Tested on Debian 13 (trixie), amd64. The role uses only apt, pip and systemd, so Debian based systems such as
-  Ubuntu and Raspberry Pi OS should work, but are not tested.
+- Debian 13 (trixie) or newer, and systems based on it such as 64-bit Raspberry Pi OS. Tested on Debian 13 amd64.
+- 64-bit only (amd64, arm64): some pinned Python packages have no 32-bit ARM wheels.
 - Python packages are pinned in `ansible/roles/reticulum_host/files/requirements.txt`.
 
 ## Requirements
 
 - Role: Ansible on the control machine; on the target, Debian with SSH, sudo and internet access
-- ISO: a Debian 13 amd64 netinst ISO, libvirt with `virt-install` and the `default` network, internet access
+- ISO: a Debian 13 amd64 netinst ISO, libvirt with `virt-install` and the `default` network, your user in the
+  `libvirt` group, an SSH key pair, `git`, internet access
 
 ## Configure a machine with the Ansible role
+
+Get the code:
+
+```bash
+git clone https://github.com/mleo40/reticulum-host.git
+cd reticulum-host/ansible
+```
 
 On another machine:
 
 ```bash
-cd ansible
 cp inventory.example.yml inventory.yml
 ansible-playbook -i inventory.yml site.yml -K
 ```
@@ -55,38 +65,55 @@ ansible-playbook -i inventory.yml site.yml -K
 On the machine you are on:
 
 ```bash
-cd ansible
 ansible-playbook -i localhost, -c local site.yml -K
 ```
 
 Running it again updates the host to the versions pinned here. Settings are in
-`ansible/roles/reticulum_host/defaults/main.yml`; override them per host in the inventory. For example, a BBS name and
-a LoRa radio:
+`ansible/roles/reticulum_host/defaults/main.yml`; override them per host in the inventory. For example, a BBS name,
+a Partyline operator and a LoRa radio:
 
 ```yaml
 reticulum_host_bbs_name: Club BBS
+reticulum_host_partyline_ops: [0123456789abcdef0123456789abcdef]
 reticulum_host_extra_interfaces:
   - name: RNode LoRa
     options: {type: RNodeInterface, enabled: "Yes", port: /dev/ttyUSB0, frequency: 915000000,
               bandwidth: 125000, txpower: 7, spreadingfactor: 8, codingrate: 5}
 ```
 
+The playbook owns the Partyline config, so operators promoted from a client are lost on the next run; list them in
+`reticulum_host_partyline_ops` instead.
+
 The `ansible` folder stands alone; copy it anywhere.
 
 ## Build the ISO
 
-1. Create the build VM, a minimal Debian 13 with live-build. It logs in with the public keys in `~/.ssh/*.pub` (set
-   `SSH_PUBKEYS` to choose others) and has no password:
+The build copies your checkout into the build VM, so it builds exactly what you have, including uncommitted changes.
+
+1. Get the code and the Debian netinst ISO:
+
+   ```bash
+   git clone https://github.com/mleo40/reticulum-host.git
+   cd reticulum-host
+   ```
+
+   Download `debian-13.x.y-amd64-netinst.iso` from <https://www.debian.org/CD/netinst/>.
+
+2. Create the build VM once. It is a minimal Debian 13 with live-build, logs in with the public keys in
+   `~/.ssh/*.pub` (set `SSH_PUBKEYS` to choose others) and has no password. The install is unattended and takes
+   10 to 15 minutes; leave its console alone while it runs:
 
    ```bash
    ./vm/build-vm.sh ~/Downloads/debian-13.7.0-amd64-netinst.iso
    ```
 
-2. Start the VM if it is off, then build:
+3. Start the VM if it is off:
 
    ```bash
    virsh -c qemu:///system start reticulum-build
    ```
+
+4. Build. This takes 20 to 40 minutes:
 
    ```bash
    ./build-iso.sh
@@ -94,7 +121,8 @@ The `ansible` folder stands alone; copy it anywhere.
 
 The ISO is copied to `build/reticulum-host-amd64.hybrid.iso`. Write it to a USB stick with `dd` or any image writer.
 
-On any Debian 13 machine, `sudo live-build/build.sh` builds the ISO without the VM.
+To build without the VM on any Debian 13 machine, install `live-build` and run `sudo live-build/build.sh` from the
+checkout.
 
 ## Use the ISO
 
@@ -108,20 +136,20 @@ On any Debian 13 machine, `sudo live-build/build.sh` builds the ISO without the 
 
 ## Use a host
 
+The login banner lists the addresses clients connect to. To check the network:
+
 ```bash
 rnstatus
 ```
 
-```bash
-sudo journalctl -u retibbs | grep 'Identity hash'
-```
+To see a service's log, for example Partyline's:
 
 ```bash
-sudo -u reticulum rngit --config /var/lib/reticulum/rngit --rnsconfig /var/lib/reticulum/rns --print-identity
+sudo journalctl -u partyline
 ```
 
-The RetiBBS identity hash is the address clients connect to. A new server has no admin; see the RetiBBS client
-documentation for setting the first one in `/var/lib/reticulum/retibbs/users.db`.
+A new RetiBBS server has no admin; see the RetiBBS client documentation for setting the first one in
+`/var/lib/reticulum/retibbs/users.db`.
 
 ## Update pinned versions
 
@@ -130,4 +158,5 @@ existing hosts, and rebuild the ISO.
 
 ## Revision history
 
+- 0.2.0: Partyline voice rooms; complete ISO build steps
 - 0.1.0: First version

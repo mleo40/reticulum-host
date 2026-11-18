@@ -67,7 +67,8 @@ def main():
 
     files = {'transport': args.home / 'rns/storage/transport_identity',
              'retibbs': args.home / 'retibbs/server_identity.pem',
-             'rngit': args.home / 'rngit/repositories_identity'}
+             'rngit': args.home / 'rngit/repositories_identity',
+             'partyline': args.home / 'partyline/server_identity'}
     # Services create their identities on first start
     deadline = time.monotonic() + args.wait
     while not all(path.is_file() for path in files.values()) and time.monotonic() < deadline:
@@ -76,8 +77,10 @@ def main():
     transport = load_identity(files['transport'])
     retibbs = load_identity(files['retibbs'])
     rngit = load_identity(files['rngit'])
+    partyline = load_identity(files['partyline'])
     rows = [('Transport identity', transport.hash.hex() if transport else 'not created yet'),
             ('RetiBBS', destination(retibbs, 'retibbs.bbs')),
+            ('Partyline voice', destination(partyline, 'lxst.room')),
             ('Git repositories', destination(rngit, 'git.repositories')),
             ('Git node pages', destination(rngit, 'nomadnetwork.node'))]
 

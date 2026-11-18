@@ -19,5 +19,7 @@ tar -C "$here" --exclude ./build --exclude ./.git --exclude ./.idea -czf - . | \
   ssh "$target" 'rm -rf reticulum-host && mkdir reticulum-host && tar -C reticulum-host -xzf -'
 ssh "$target" 'sudo reticulum-host/live-build/build.sh /home/build && sudo chown build: /home/build/*.iso'
 mkdir -p "$here/build"
+# A VM that booted the previous ISO leaves it owned by libvirt; replace rather than overwrite
+rm -f "$here/build/reticulum-host-amd64.hybrid.iso"
 scp "$target:reticulum-host-amd64.hybrid.iso" "$here/build/"
 echo "Built $here/build/reticulum-host-amd64.hybrid.iso"
