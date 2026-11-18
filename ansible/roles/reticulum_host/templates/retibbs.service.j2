@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+[Unit]
+Description=RetiBBS bulletin board server
+After=rnsd.service
+Requires=rnsd.service
+
+[Service]
+User={{ reticulum_host_user }}
+# The server reads its theme and databases from the working directory
+WorkingDirectory={{ reticulum_host_retibbs_dir }}
+# The server exits when stdin closes, so keep it open
+ExecStart=/bin/sh -c 'tail -f /dev/null | exec {{ reticulum_host_venv }}/bin/python \
+  {{ reticulum_host_retibbs_checkout }}/server/retibbs_server.py --reticulum-config {{ reticulum_host_rns_dir }} \
+  --identity-file {{ reticulum_host_retibbs_dir }}/server_identity.pem --config-file server_config.json'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

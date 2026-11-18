@@ -1,0 +1,46 @@
+# Unattended minimal Debian 13 install for the ISO build VM. Wipes the VM's disk.
+d-i debian-installer/locale string en_US.UTF-8
+d-i keyboard-configuration/xkb-keymap select us
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string reticulum-build
+d-i netcfg/hostname string reticulum-build
+d-i netcfg/get_domain string
+
+d-i mirror/country string manual
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+
+# No password: SSH keys only, with sudo
+d-i passwd/root-login boolean false
+d-i passwd/user-fullname string Build
+d-i passwd/username string build
+d-i passwd/user-password-crypted password !
+
+d-i clock-setup/utc boolean true
+d-i time/zone string UTC
+
+d-i partman-auto/disk string /dev/vda
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+d-i pkgsel/run_tasksel boolean false
+d-i pkgsel/include string openssh-server sudo live-build squashfs-tools git
+d-i pkgsel/upgrade select full-upgrade
+popularity-contest popularity-contest/participate boolean false
+
+d-i grub-installer/bootdev string /dev/vda
+
+d-i preseed/late_command string \
+  in-target install -d -m 0700 -o build -g build /home/build/.ssh; \
+  cp /authorized_keys /target/home/build/.ssh/authorized_keys; \
+  in-target chown build:build /home/build/.ssh/authorized_keys; \
+  in-target chmod 0600 /home/build/.ssh/authorized_keys; \
+  echo 'build ALL=(ALL) NOPASSWD: ALL' > /target/etc/sudoers.d/build; \
+  chmod 0440 /target/etc/sudoers.d/build
+
+d-i finish-install/reboot_in_progress note

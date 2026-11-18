@@ -1,0 +1,7 @@
+---
+# Configure Reticulum hosts. This machine: ansible-playbook -i localhost, -c local site.yml -K
+- name: Reticulum host
+  hosts: all
+  become: true
+  roles:
+    - reticulum_host

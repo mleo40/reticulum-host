@@ -1,0 +1,7 @@
+---
+all:
+  hosts:
+    relay1.example.net:
+      reticulum_host_bbs_name: Relay One BBS
+  vars:
+    ansible_user: rnsadmin

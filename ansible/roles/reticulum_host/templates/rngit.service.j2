@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Reticulum git repository node
+After=rnsd.service
+Requires=rnsd.service
+
+[Service]
+User={{ reticulum_host_user }}
+ExecStart={{ reticulum_host_venv }}/bin/rngit \
+  --config {{ reticulum_host_rngit_dir }} \
+  --rnsconfig {{ reticulum_host_rns_dir }} \
+  --service
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

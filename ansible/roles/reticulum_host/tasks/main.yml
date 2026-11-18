@@ -1,0 +1,139 @@
+---
+- name: Install Debian packages
+  ansible.builtin.apt:
+    name: "{{ reticulum_host_apt_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the service user
+  ansible.builtin.user:
+    name: "{{ reticulum_host_user }}"
+    system: true
+    home: "{{ reticulum_host_home }}"
+    shell: /usr/sbin/nologin
+    # Serial access for RNode and other radio interfaces
+    groups: [dialout]
+    append: true
+
+- name: Create data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0750"
+  loop: ["{{ reticulum_host_home }}", "{{ reticulum_host_rns_dir }}", "{{ reticulum_host_retibbs_dir }}",
+         "{{ reticulum_host_rngit_dir }}", "{{ reticulum_host_retibbs_dir }}/themes"]
+
+- name: Create the install directory
+  ansible.builtin.file:
+    path: "{{ reticulum_host_install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy the pinned Python requirements
+  ansible.builtin.copy:
+    src: requirements.txt
+    dest: "{{ reticulum_host_install_dir }}/"
+    mode: "0644"
+
+- name: Install Reticulum packages into the venv
+  ansible.builtin.pip:
+    requirements: "{{ reticulum_host_install_dir }}/requirements.txt"
+    virtualenv: "{{ reticulum_host_venv }}"
+    virtualenv_command: python3 -m venv
+  notify: Restart reticulum services
+
+- name: Link Reticulum commands into the PATH
+  ansible.builtin.file:
+    src: "{{ reticulum_host_venv }}/bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+  loop: "{{ reticulum_host_commands }}"
+
+- name: Check out RetiBBS
+  ansible.builtin.git:
+    repo: "{{ reticulum_host_retibbs_repo }}"
+    dest: "{{ reticulum_host_retibbs_checkout }}"
+    version: "{{ reticulum_host_retibbs_version }}"
+    force: true
+  notify: Restart reticulum services
+
+- name: Write the Reticulum config
+  ansible.builtin.template:
+    src: reticulum.config.j2
+    dest: "{{ reticulum_host_rns_dir }}/config"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+  notify: Restart reticulum services
+
+- name: Write the RetiBBS config
+  ansible.builtin.template:
+    src: server_config.json.j2
+    dest: "{{ reticulum_host_retibbs_dir }}/server_config.json"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+  notify: Restart reticulum services
+
+- name: Install the RetiBBS default theme
+  ansible.builtin.copy:
+    src: "{{ reticulum_host_retibbs_checkout }}/server/themes/default/"
+    dest: "{{ reticulum_host_retibbs_dir }}/themes/default/"
+    remote_src: true
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+    directory_mode: "0750"
+
+- name: Install the RetiBBS radio theme
+  ansible.builtin.copy:
+    src: themes/radio/
+    dest: "{{ reticulum_host_retibbs_dir }}/themes/radio/"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+    directory_mode: "0750"
+  notify: Restart reticulum services
+
+- name: Install systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.service.j2"
+    dest: "/etc/systemd/system/{{ item }}.service"
+    mode: "0644"
+  loop: [rnsd, retibbs, rngit, lxmd]
+  notify: Restart reticulum services
+
+- name: Enable services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    daemon_reload: true
+  loop: "{{ reticulum_host_services }}"
+
+- name: Start services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ reticulum_host_services }}"
+  when: not reticulum_host_image_build
+
+- name: Set up the login banners
+  ansible.builtin.include_tasks: banner.yml
+  when: reticulum_host_banner
+
+- name: Find Reticulum identities created during the image build
+  ansible.builtin.find:
+    paths: ["{{ reticulum_host_home }}"]
+    patterns: ["*identity", "*.pem"]
+    recurse: true
+  register: reticulum_host_identities
+  when: reticulum_host_image_build
+
+- name: Fail if the installed image holds an identity
+  ansible.builtin.assert:
+    that: reticulum_host_identities.matched == 0
+    fail_msg: "Identities must be created on first boot: {{ reticulum_host_identities.files | map(attribute='path') }}"
+  when: reticulum_host_image_build

@@ -1,0 +1,27 @@
+# {{ ansible_managed }}
+[reticulum]
+  enable_transport = {{ 'Yes' if reticulum_host_enable_transport else 'No' }}
+  share_instance = Yes
+
+[logging]
+  loglevel = {{ reticulum_host_loglevel }}
+
+[interfaces]
+  [[Default Interface]]
+    type = AutoInterface
+    enabled = Yes
+{% if reticulum_host_tcp_server %}
+
+  [[TCP Server]]
+    type = TCPServerInterface
+    enabled = Yes
+    listen_ip = 0.0.0.0
+    listen_port = {{ reticulum_host_tcp_port }}
+{% endif %}
+{% for interface in reticulum_host_extra_interfaces %}
+
+  [[{{ interface.name }}]]
+{% for key, value in interface.options.items() %}
+    {{ key }} = {{ value }}
+{% endfor %}
+{% endfor %}

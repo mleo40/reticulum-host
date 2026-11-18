@@ -1,0 +1,14 @@
+---
+- name: Restart reticulum services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: restarted
+    daemon_reload: true
+  loop: "{{ reticulum_host_services }}"
+  when: not reticulum_host_image_build
+
+- name: Reload sshd
+  ansible.builtin.systemd_service:
+    name: ssh
+    state: reloaded
+  when: not reticulum_host_image_build

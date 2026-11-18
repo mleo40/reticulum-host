@@ -1,0 +1,12 @@
+# The image ships without SSH host keys; create this machine's own on first boot
+[Unit]
+Description=Create SSH host keys
+ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
+Before=ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+
+[Install]
+WantedBy=multi-user.target

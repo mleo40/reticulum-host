@@ -1,0 +1,40 @@
+---
+# True when building an image: services are enabled but not started, so no identity is created
+reticulum_host_image_build: false
+
+reticulum_host_user: reticulum
+reticulum_host_home: /var/lib/reticulum
+reticulum_host_rns_dir: "{{ reticulum_host_home }}/rns"
+reticulum_host_retibbs_dir: "{{ reticulum_host_home }}/retibbs"
+reticulum_host_rngit_dir: "{{ reticulum_host_home }}/rngit"
+
+reticulum_host_install_dir: /opt/reticulum
+reticulum_host_venv: "{{ reticulum_host_install_dir }}/venv"
+
+reticulum_host_retibbs_repo: https://github.com/kc1awv/RetiBBS.git
+reticulum_host_retibbs_version: 7c26d2c05e945f67382695d2f8de21abdb6d7020
+reticulum_host_retibbs_checkout: "{{ reticulum_host_install_dir }}/RetiBBS"
+
+reticulum_host_apt_packages: [git, ansible, python3-venv, sqlite3, ca-certificates]
+
+# Commands from the venv linked into /usr/local/bin
+reticulum_host_commands: [rnsd, rnstatus, rnpath, rnprobe, rncp, rnx, rnid, rnir, rnodeconf, rnsh, rnpkg, rngit,
+                          rngcs, git-remote-rns, lxmd, nomadnet]
+
+reticulum_host_enable_transport: true
+reticulum_host_loglevel: 4
+reticulum_host_tcp_server: true
+reticulum_host_tcp_port: 4242
+# Extra Reticulum interfaces: list of {name: "...", options: {type: ..., ...}}
+reticulum_host_extra_interfaces: []
+
+reticulum_host_bbs_name: Reticulum BBS
+reticulum_host_bbs_announce_interval: 300
+reticulum_host_bbs_theme: radio
+
+# Systemd units to enable; lxmd is installed but not run by default
+reticulum_host_services: [rnsd, retibbs, rngit]
+
+# Show this host's Reticulum addresses in the console login banner, and in the SSH login banner
+reticulum_host_banner: true
+reticulum_host_ssh_banner: true

@@ -1,0 +1,14 @@
+#!/bin/sh
+# Install the Reticulum host software with the Ansible role, without starting any service
+set -eu
+
+# Ansible needs /dev/shm, which the build chroot lacks
+if ! mountpoint -q /dev/shm; then
+  mkdir -p /dev/shm
+  mount -t tmpfs tmpfs /dev/shm
+  trap 'umount /dev/shm' EXIT
+fi
+
+cd /opt/reticulum-host/ansible
+ansible-playbook -i localhost, -c local site.yml -e '{"reticulum_host_image_build": true}'
+systemctl enable ssh-hostkeys.service

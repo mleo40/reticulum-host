@@ -1,0 +1,11 @@
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+openssh-server
+sudo
+git
+ansible
+python3-venv
+sqlite3
+ca-certificates

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Remove every per-machine identifier, so each deployed system creates its own on first boot
+set -eu
+
+rm -f /etc/ssh/ssh_host_*
+: > /etc/machine-id
+rm -f /var/lib/dbus/machine-id /var/lib/systemd/random-seed
+rm -rf /root/.reticulum /etc/issue.d/reticulum.issue /etc/ssh/reticulum-banner
+if [ -d /var/lib/reticulum ]; then
+  find /var/lib/reticulum \( -name '*identity' -o -name '*.pem' -o -name storage \) -prune -exec rm -rf {} +
+fi
+
+left=$(find /etc/ssh /var/lib/reticulum /root \( -name 'ssh_host_*' -o -name '*identity' -o -name '*.pem' \) -print)
+if [ -n "$left" ]; then
+  echo "Identifiers left in the image: $left" >&2
+  exit 1
+fi

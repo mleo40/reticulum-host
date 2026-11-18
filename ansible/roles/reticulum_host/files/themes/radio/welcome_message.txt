@@ -1,0 +1,1 @@
+Welcome. Set a display name with: n <name>
