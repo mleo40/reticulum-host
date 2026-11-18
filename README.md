@@ -148,8 +148,33 @@ To see a service's log, for example Partyline's:
 sudo journalctl -u partyline
 ```
 
-A new RetiBBS server has no admin; see the RetiBBS client documentation for setting the first one in
-`/var/lib/reticulum/retibbs/users.db`.
+### Make the first RetiBBS admin
+
+A new RetiBBS server has no admin, and only admins can create boards. RetiBBS has no command for the first one, so set
+it in its user database:
+
+1. Connect to the BBS once from a client and pick a display name. RetiBBS adds your account on first connect.
+
+2. On the host, list the accounts and find your identity hash (32 hex characters) by your name:
+
+   ```bash
+   sudo sqlite3 /var/lib/reticulum/retibbs/users.db "SELECT hash_hex, name, is_admin FROM users;"
+   ```
+
+3. Make that account admin. It prints `1` when a row was updated, `0` when the hash did not match:
+
+   ```bash
+   sudo sqlite3 /var/lib/reticulum/retibbs/users.db \
+     "UPDATE users SET is_admin=1 WHERE hash_hex='<your hash>'; SELECT changes();"
+   ```
+
+4. In the client, check your account again. No restart is needed.
+
+Use the full path: `sqlite3 users.db` in another folder creates a new, empty database there.
+
+### Standby copy
+
+To keep a standby copy of a RetiBBS server at another site, see [Back up and restore RetiBBS](docs/retibbs-backup.md).
 
 ## Update pinned versions
 
