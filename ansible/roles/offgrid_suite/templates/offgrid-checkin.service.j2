@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Check-in bot and contacts page
+After=rnsd.service lxmd.service
+Requires=rnsd.service
+
+[Service]
+User={{ reticulum_host_user }}
+ExecStart={{ reticulum_host_venv }}/bin/python {{ reticulum_host_install_dir }}/bin/offgrid-checkin.py \
+  --rnsconfig {{ reticulum_host_rns_dir }} --data {{ offgrid_suite_checkin_dir }} --web {{ reticulum_host_web_dir }} \
+  --name "{{ offgrid_suite_checkin_name }}" --propagation-identity {{ reticulum_host_lxmd_dir }}/identity \
+  --announce-minutes {{ offgrid_suite_checkin_announce_minutes }} --amber-hours {{ offgrid_suite_late_hours }} \
+  --red-hours {{ offgrid_suite_overdue_hours }} --stamp-cost {{ offgrid_suite_checkin_stamp_cost }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# The operators' contacts page needs a password; set one with offgrid-dashboard-password
+location /contacts/ {
+    auth_basic "Operators";
+    auth_basic_user_file {{ offgrid_suite_dashboard_users }};
+    add_header Cache-Control no-store;
+}
+location /notices/ {
+    add_header Cache-Control no-cache;
+}

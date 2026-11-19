@@ -10,3 +10,19 @@ offgrid_suite_kiwix_port: 8090
 # systemd names units after paths: /srv/offgrid/zim is srv-offgrid-zim, the drive label after /dev/disk/by-label/
 offgrid_suite_kiwix_device_unit: "dev-disk-by\\x2dlabel-{{ offgrid_suite_kiwix_drive_label | replace('-', '\\x2d') }}"
 offgrid_suite_kiwix_mount_unit: "{{ offgrid_suite_kiwix_dir.strip('/') | replace('-', '\\x2d') | replace('/', '-') }}"
+
+# Check-in bot: an LXMF address people message from Sideband, MeshChat or Columba. It records check-ins, answers with
+# notices and the net schedule, and lets operators update them and broadcast. It also records every announce the host
+# hears, for the operators' contacts page at /contacts/, which needs a password set with offgrid-dashboard-password.
+offgrid_suite_checkin: true
+offgrid_suite_checkin_dir: "{{ reticulum_host_home }}/offgrid"
+offgrid_suite_checkin_name: Check-in bot
+# LXMF addresses allowed operator commands. Empty leaves operators.txt for editing on the host.
+offgrid_suite_operators: []
+offgrid_suite_checkin_announce_minutes: 30
+# Hours without an announce or check-in before a roster member shows as late, then overdue
+offgrid_suite_late_hours: 6
+offgrid_suite_overdue_hours: 24
+# Proof of work senders must add to each message, against flooding; 0 for none
+offgrid_suite_checkin_stamp_cost: 0
+offgrid_suite_dashboard_users: /etc/reticulum-host/dashboard.htpasswd

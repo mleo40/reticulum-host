@@ -27,7 +27,7 @@
     path: "{{ item }}"
     state: directory
     mode: "0755"
-  loop: [/etc/nginx/reticulum-host.d, /etc/reticulum-host/links.d]
+  loop: [/etc/nginx/reticulum-host.d, /etc/reticulum-host/links.d, /etc/reticulum-host/addresses.d]
 
 - name: Install the user guide shown on the web page
   ansible.builtin.copy:

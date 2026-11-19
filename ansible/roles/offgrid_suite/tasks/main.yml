@@ -7,3 +7,7 @@
 - name: Set up Kiwix
   ansible.builtin.include_tasks: kiwix.yml
   when: offgrid_suite_kiwix
+
+- name: Set up the check-in bot and contacts page
+  ansible.builtin.include_tasks: checkin.yml
+  when: offgrid_suite_checkin

@@ -7,7 +7,7 @@
 {% if reticulum_host_http_files %}
 {%   set args = args + ['--http-port', reticulum_host_http_port, '--web-root', reticulum_host_web_dir,
                         '--guide', reticulum_host_install_dir ~ '/share/user-guide.md',
-                        '--links', '/etc/reticulum-host/links.d'] %}
+                        '--links', '/etc/reticulum-host/links.d', '--addresses', '/etc/reticulum-host/addresses.d'] %}
 {% endif %}
 {% if reticulum_host_mdns %}{% set args = args + ['--mdns'] %}{% endif %}
 {% if reticulum_host_http_files and reticulum_host_health %}{% set args = args + ['--health'] %}{% endif %}

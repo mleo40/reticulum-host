@@ -98,6 +98,22 @@ def guide_html(path):
     return MarkdownIt('commonmark', {'html': False}).enable('table').render(text)
 
 
+def extra_addresses(folder):
+    """
+    List addresses other roles add, such as the check-in bot's.
+
+    :param folder: folder of files holding "Label|identity file|aspect", or None
+    :return: list of (label, identity path, aspect) tuples
+    """
+    found = []
+    if folder and folder.is_dir():
+        for path in sorted(folder.iterdir()):
+            parts = [part.strip() for part in path.read_text(encoding='utf-8').strip().split('|')]
+            if len(parts) == 3 and all(parts):
+                found.append((parts[0], Path(parts[1]), parts[2]))
+    return found
+
+
 def page_links(health, folder):
     """
     List the links shown under the addresses.
@@ -170,6 +186,8 @@ def main():
     parser.add_argument('--mdns', action='store_true', help='the host answers to <hostname>.local')
     parser.add_argument('--health', action='store_true', help='link to the health page')
     parser.add_argument('--links', type=Path, default=None, help='folder of extra page links, "Label|/path" per file')
+    parser.add_argument('--addresses', type=Path, default=None,
+                        help='folder of extra addresses, "Label|identity file|aspect" per file, such as a bot')
     args = parser.parse_args()
 
     files = {'transport': args.home / 'rns/storage/transport_identity',
@@ -180,6 +198,9 @@ def main():
         files['nomadnet'] = args.home / 'nomadnet/storage/identity'
     if args.propagation:
         files['lxmd'] = args.home / 'lxmd/identity'
+    extra = extra_addresses(args.addresses)
+    for label, path, _ in extra:
+        files[label] = path
     # Services create their identities on first start, and DHCP may still be running; the console banner's \\4 shows
     # the address only once an interface has one
     deadline = time.monotonic() + args.wait
@@ -203,6 +224,8 @@ def main():
         rows.append(('Nomad Network pages', destination(load_identity(nomadnet_path), 'nomadnetwork.node')))
     if args.propagation:
         rows.append(('LXMF propagation', destination(load_identity(files['lxmd']), 'lxmf.propagation')))
+    for label, path, aspect in extra:
+        rows.append((label, destination(load_identity(path), aspect)))
 
     # The console banner uses agetty's \\4, the current IPv4 address; the SSH banner lists them when written
     addresses = ipv4_addresses()

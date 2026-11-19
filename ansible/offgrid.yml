@@ -5,6 +5,7 @@
   hosts: all
   become: true
   vars:
+    reticulum_host_health_extra_units: [offgrid-checkin]
     reticulum_host_health_optional_units: [kiwix]
   roles:
     - reticulum_host

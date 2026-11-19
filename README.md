@@ -15,8 +15,8 @@ There are three ways to get a host, all built from the same Ansible role:
 - **Raspberry Pi image** (`pi/`): write it to an SD card.
 
 The ISO and the Pi image each come in two types: the **standard** Reticulum host, and the **off-grid** image, which
-adds the programs in the [off-grid suite](docs/offgrid-suite.md), such as a Kiwix offline library, from a second
-Ansible role.
+adds the programs in the [off-grid suite](docs/offgrid-suite.md), from a second Ansible role: a Kiwix offline library,
+and a check-in bot with a contacts page that shows operators who has checked in and everyone heard on the network.
 
 Every machine creates its own Reticulum identities, so its own addresses, and SSH host keys on first boot. The
 images hold no per-machine identifiers; their builds fail if any remain.
@@ -214,6 +214,8 @@ existing hosts, and rebuild the ISO and the Pi image.
 
 ## Revision history
 
+- 0.8.0: Check-in bot and operators' contacts page in the off-grid suite: check-ins, notices, net schedule, a roster
+  with overdue warnings, and every announce heard
 - 0.7.0: Health page; GPS and time served to the local network; off-grid images with a Kiwix offline library, from
   the new `offgrid_suite` role; image settings in `ansible/image.yml`; services start once `rnsd` is ready, which fixes
   `rnstatus` and other tools being rejected after the first boot

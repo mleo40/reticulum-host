@@ -1,0 +1,104 @@
+---
+- name: Install openssl, to make dashboard passwords
+  ansible.builtin.apt:
+    name: openssl
+    state: present
+
+- name: Create the bot's folder
+  ansible.builtin.file:
+    path: "{{ offgrid_suite_checkin_dir }}"
+    state: directory
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0750"
+
+- name: Create the folders the bot writes its pages into
+  ansible.builtin.file:
+    path: "{{ reticulum_host_web_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0755"
+  loop: [contacts, notices]
+
+- name: Add the roster and operator files, unless there are some
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ offgrid_suite_checkin_dir }}/{{ item }}"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+    force: false
+  loop: [roster.txt, operators.txt]
+
+- name: Write the operators listed in Ansible
+  ansible.builtin.template:
+    src: operators.txt.j2
+    dest: "{{ offgrid_suite_checkin_dir }}/operators.txt"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+  when: offgrid_suite_operators | length > 0
+
+- name: Install the bot
+  ansible.builtin.copy:
+    src: offgrid-checkin.py
+    dest: "{{ reticulum_host_install_dir }}/bin/"
+    mode: "0755"
+  notify: Restart the check-in bot
+
+- name: Install the bot's unit
+  ansible.builtin.template:
+    src: offgrid-checkin.service.j2
+    dest: /etc/systemd/system/offgrid-checkin.service
+    mode: "0644"
+  notify: Restart the check-in bot
+
+- name: Add the dashboard password file, empty until an operator sets a password
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ offgrid_suite_dashboard_users }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+    force: false
+
+- name: Install the command that sets dashboard passwords
+  ansible.builtin.template:
+    src: offgrid-dashboard-password.j2
+    dest: /usr/local/sbin/offgrid-dashboard-password
+    mode: "0755"
+
+- name: Serve the contacts page with a password, and the notices page
+  ansible.builtin.template:
+    src: nginx-checkin.conf.j2
+    dest: /etc/nginx/reticulum-host.d/checkin.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Link the notices and contacts pages from the host's page
+  ansible.builtin.copy:
+    content: "{{ item.content }}\n"
+    dest: "/etc/reticulum-host/links.d/{{ item.name }}"
+    mode: "0644"
+  loop:
+    - {name: 40-notices, content: "Notices and check-in|/notices/"}
+    - {name: 90-contacts, content: "Contacts (operators)|/contacts/"}
+
+- name: Show the bot's address in the login banner and on the page
+  ansible.builtin.copy:
+    content: "Check-in bot|{{ offgrid_suite_checkin_dir }}/identity|lxmf.delivery\n"
+    dest: /etc/reticulum-host/addresses.d/50-checkin
+    mode: "0644"
+
+- name: Enable the bot
+  ansible.builtin.systemd_service:
+    name: offgrid-checkin
+    enabled: true
+    daemon_reload: true
+
+- name: Start the bot
+  ansible.builtin.systemd_service:
+    name: offgrid-checkin
+    state: started
+  when: not reticulum_host_image_build

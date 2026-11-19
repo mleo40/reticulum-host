@@ -91,9 +91,16 @@ and sounds better; Low bandwidth works over slow links such as radio.
 On the host's web page, choose Shared files, or open <http://reticulum-host.local/files/>, and download what you need.
 Everything there is public; you cannot upload.
 
+## Check in
+
+On hosts that have a check-in bot, its address is on the host's web page and in the login banner. Send it a message
+from your messaging app, such as `checkin All 4 of us OK at the school`, and it replies to confirm. The operators see
+your name, status and the time. Send `status` for notices, `nets` for the net schedule, or `help`.
+
 ## More on the web page
 
 - **Host health** shows whether the host and its services are working.
+- **Notices and check-in**, on hosts that have them, shows the operators' notices and net schedule.
 - **Offline library**, on hosts that have one, holds offline copies of Wikipedia, medical and repair guides and
   more, searchable in the browser.
 - **Time:** when there is no internet, a laptop can set its clock from the host. Set its time (NTP) server to

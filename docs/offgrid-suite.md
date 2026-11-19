@@ -6,6 +6,7 @@ The off-grid images are the Reticulum host with more programs for running withou
 | Program | What it does | Unit | Where |
 |---|---|---|---|
 | Kiwix | Offline library: Wikipedia, medical, repair and survival guides, and more | `kiwix` | `http://reticulum-host.local/library/` |
+| Check-in bot | Check-ins, notices and the net schedule by LXMF message, and a list of everyone heard | `offgrid-checkin` | Its address in the login banner; `/notices/` and `/contacts/` |
 
 ## Get the off-grid images
 
@@ -77,3 +78,86 @@ needed.
 
 To check it: `systemctl status srv-offgrid-zim.mount kiwix` shows whether the drive is mounted and Kiwix is running.
 If Kiwix does not start, check the drive's label with `lsblk -f`, and that the `.zim` files are at its top level.
+
+## Check-in bot
+
+An LXMF address people message from Sideband, MeshChat or Columba, like any contact. It is how people tell the
+operators they are OK, and how they get notices without a web browser. Its address is in the login banner and on
+the host's page as "Check-in bot"; it also announces itself every 30 minutes, so it shows up in people's apps.
+
+| Message | Reply |
+|---|---|
+| `checkin <status>`, such as `checkin All 4 of us OK at the school` | Confirms, with the time. A new check-in replaces the sender's earlier one. |
+| `status` | The operators' notices |
+| `nets` | The net schedule |
+| `help`, or anything else | The list of commands |
+
+Operators, listed by LXMF address, also have:
+
+| Message | Does |
+|---|---|
+| `list` | The number checked in, and the latest ten |
+| `notice <text>` | Replaces the notices |
+| `nets <text>` | Replaces the net schedule |
+| `broadcast <text>` | Sends the text to everyone who has checked in |
+
+The bot answers a sender at most every 20 seconds, keeps messages short for radio links, never answers another
+copy of itself, and sends replies through the host's propagation node when the sender is offline.
+
+### Set it up
+
+1. **Operators:** put each operator's LXMF address, one per line, in `/var/lib/reticulum/offgrid/operators.txt`. The
+   bot reads it on every message; no restart is needed. With Ansible, list them in `offgrid_suite_operators`.
+
+2. **Dashboard password:** the contacts page needs one, and the images ship without it. Set it on the host:
+
+   ```bash
+   sudo offgrid-dashboard-password
+   ```
+
+   It asks for a password for the user `operator`; give another name as the first argument for more users. The page
+   is on plain HTTP, so the password crosses the local network unencrypted; use one you use nowhere else.
+
+3. **Roster:** list the people you expect to hear from in `/var/lib/reticulum/offgrid/roster.txt`, one per line: their
+   LXMF address, a space, and their name. Read every minute; no restart is needed.
+
+4. **Notices and net schedule:** send `notice` and `nets` from an operator's phone, or edit
+   `/var/lib/reticulum/offgrid/notices.txt` and `nets.txt` on the host.
+
+Edit the files as the `reticulum` user, for example `sudo -u reticulum nano /var/lib/reticulum/offgrid/roster.txt`.
+
+### Contacts page, for operators
+
+`http://reticulum-host.local/contacts/`, behind the password. It is rewritten every minute:
+
+- **Roster:** each expected person, marked OK, late (nothing heard for 6 hours), overdue (24 hours) or not heard,
+  with their last check-in, status, when the host last heard their announce, and the route to them. People needing
+  attention come first.
+- **Check-ins from others:** people who checked in but are not on the roster.
+- **Heard on the network:** every announce the host has heard, by kind: people, propagation nodes, bulletin boards,
+  voice rooms, phones, page nodes, git nodes and others, with names, first and last heard, and route.
+
+"Last heard" is the last announce. Apps announce when they start and every few hours, so someone can be active
+without being heard for a while; a check-in is the sure sign.
+
+The notices page, `http://reticulum-host.local/notices/`, is public: notices, the net schedule, and how to check in.
+
+### Privacy
+
+The bot keeps every check-in and announce in `/var/lib/reticulum/offgrid/offgrid.db`: names, addresses, statuses and
+times. Only operators see check-ins, but anyone with root on the host can read the database. To start afresh, stop
+the bot, delete the database, and start it again:
+
+```bash
+sudo systemctl stop offgrid-checkin
+sudo rm /var/lib/reticulum/offgrid/offgrid.db
+sudo systemctl start offgrid-checkin
+```
+
+### Settings
+
+- Runs as `reticulum`, unit `offgrid-checkin`. Its identity, `/var/lib/reticulum/offgrid/identity`, decides its
+  address.
+- Ansible variables: `offgrid_suite_checkin` (on or off), `offgrid_suite_checkin_name`, `offgrid_suite_operators`,
+  `offgrid_suite_checkin_announce_minutes`, `offgrid_suite_late_hours`, `offgrid_suite_overdue_hours`, and
+  `offgrid_suite_checkin_stamp_cost`, a proof of work senders must add to each message, against flooding; 0 for none.
