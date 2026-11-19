@@ -91,6 +91,14 @@ and sounds better; Low bandwidth works over slow links such as radio.
 On the host's web page, choose Shared files, or open <http://reticulum-host.local/files/>, and download what you need.
 Everything there is public; you cannot upload.
 
+## More on the web page
+
+- **Host health** shows whether the host and its services are working.
+- **Offline library**, on hosts that have one, holds offline copies of Wikipedia, medical and repair guides and
+  more, searchable in the browser.
+- **Time:** when there is no internet, a laptop can set its clock from the host. Set its time (NTP) server to
+  `reticulum-host.local`.
+
 ## Pages
 
 When the operator has turned them on, open the Nomad Network pages address in MeshChat or

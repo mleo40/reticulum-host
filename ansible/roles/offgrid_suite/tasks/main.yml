@@ -1,0 +1,9 @@
+---
+- name: Check the web page is on
+  ansible.builtin.assert:
+    that: reticulum_host_http_files
+    fail_msg: offgrid_suite serves its programs through the host's web page; set reticulum_host_http_files to true
+
+- name: Set up Kiwix
+  ansible.builtin.include_tasks: kiwix.yml
+  when: offgrid_suite_kiwix

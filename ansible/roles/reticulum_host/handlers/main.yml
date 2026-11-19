@@ -20,6 +20,18 @@
     daemon_reload: true
   when: not reticulum_host_image_build and reticulum_host_firewall
 
+- name: Restart gpsd
+  ansible.builtin.systemd_service:
+    name: gpsd
+    state: restarted
+  when: not reticulum_host_image_build
+
+- name: Restart chrony
+  ansible.builtin.systemd_service:
+    name: chrony
+    state: restarted
+  when: not reticulum_host_image_build
+
 - name: Reload nginx
   ansible.builtin.systemd_service:
     name: nginx

@@ -65,21 +65,7 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reticulum host {name}</title>
-<style>
-:root {{ color-scheme: light dark; --muted: #666; --line: #ccc; --code: #f2f2f2; }}
-@media (prefers-color-scheme: dark) {{ :root {{ --muted: #aaa; --line: #444; --code: #2a2a2a; }} }}
-body {{ font: 16px/1.5 system-ui, sans-serif; max-width: 52rem; margin: 0 auto; padding: 1rem; }}
-h1 {{ margin-bottom: 0.2rem; }}
-.when {{ color: var(--muted); margin-top: 0; }}
-table {{ border-collapse: collapse; margin: 0.5rem 0 1rem; }}
-th, td {{ border-bottom: 1px solid var(--line); padding: 0.35rem 0.6rem 0.35rem 0; text-align: left; }}
-th, td {{ vertical-align: top; }}
-code, pre {{ background: var(--code); border-radius: 4px; }}
-code {{ padding: 0.1rem 0.25rem; overflow-wrap: anywhere; }}
-pre {{ padding: 0.6rem; overflow-x: auto; }}
-code.addr {{ user-select: all; font-size: 1.05rem; }}
-hr {{ border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }}
-</style>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <h1>Reticulum host</h1>
@@ -87,7 +73,7 @@ hr {{ border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }}
 <table>
 {rows}
 </table>
-<p><a href="/files/">Shared files</a></p>
+<p>{links}</p>
 <hr>
 {guide}
 </body>
@@ -112,17 +98,37 @@ def guide_html(path):
     return MarkdownIt('commonmark', {'html': False}).enable('table').render(text)
 
 
-def write_page(web_root, rows, guide):
+def page_links(health, folder):
+    """
+    List the links shown under the addresses.
+
+    :param health: include the health page
+    :param folder: folder of files holding "Label|/path", one link each, or None
+    :return: list of (label, path) tuples
+    """
+    links = [('Shared files', '/files/')] + ([('Host health', '/health.html')] if health else [])
+    if folder and folder.is_dir():
+        for path in sorted(folder.iterdir()):
+            label, _, target = path.read_text(encoding='utf-8').strip().partition('|')
+            if label and target:
+                links.append((label.strip(), target.strip()))
+    return links
+
+
+def write_page(web_root, rows, guide, links):
     """
     Write the web page with the addresses and the user guide.
 
     :param web_root: folder nginx serves the page from
     :param rows: list of (label, value) tuples
     :param guide: user guide Markdown file
+    :param links: list of (label, path) tuples shown under the addresses
     """
     name = html.escape(socket.gethostname())
     cells = '\n'.join(f'<tr><th>{html.escape(label)}</th><td>{value_html(value)}</td></tr>' for label, value in rows)
-    page = PAGE.format(name=name, when=time.strftime('%Y-%m-%d %H:%M %Z'), rows=cells, guide=guide_html(guide))
+    links_html = ' &middot; '.join(f'<a href="{html.escape(path)}">{html.escape(label)}</a>' for label, path in links)
+    page = PAGE.format(name=name, when=time.strftime('%Y-%m-%d %H:%M %Z'), rows=cells, links=links_html,
+                       guide=guide_html(guide))
     temporary = web_root / '.index.html.tmp'
     temporary.write_text(page, encoding='utf-8')
     temporary.chmod(0o644)
@@ -162,6 +168,8 @@ def main():
     parser.add_argument('--web-root', type=Path, default=None, help='folder to write the web page into')
     parser.add_argument('--guide', type=Path, default=None, help='user guide shown on the web page')
     parser.add_argument('--mdns', action='store_true', help='the host answers to <hostname>.local')
+    parser.add_argument('--health', action='store_true', help='link to the health page')
+    parser.add_argument('--links', type=Path, default=None, help='folder of extra page links, "Label|/path" per file')
     args = parser.parse_args()
 
     files = {'transport': args.home / 'rns/storage/transport_identity',
@@ -214,7 +222,7 @@ def main():
     if args.ssh_banner:
         args.ssh_banner.write_text(banner(rows, ssh_rows))
     if args.web_root:
-        write_page(args.web_root, ssh_rows + rows, args.guide)
+        write_page(args.web_root, ssh_rows + rows, args.guide, page_links(args.health, args.links))
 
 
 if __name__ == '__main__':

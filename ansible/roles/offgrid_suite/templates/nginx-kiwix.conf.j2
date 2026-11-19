@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+# Kiwix offline library, served by kiwix-serve on this host only
+location = /library {
+    return 301 /library/;
+}
+location /library/ {
+    limit_except GET HEAD { deny all; }
+    proxy_pass http://127.0.0.1:{{ offgrid_suite_kiwix_port }};
+    proxy_set_header Host $host;
+    proxy_intercept_errors on;
+    # Kiwix is stopped while there is no library drive
+    error_page 502 503 504 /library-missing.html;
+}
+location = /library-missing.html {
+    add_header Cache-Control no-cache;
+}

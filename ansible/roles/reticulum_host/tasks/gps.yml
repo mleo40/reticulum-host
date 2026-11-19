@@ -1,0 +1,32 @@
+---
+- name: Install gpsd and chrony
+  ansible.builtin.apt:
+    name: [gpsd, gpsd-clients, chrony]
+    state: present
+
+- name: Configure gpsd
+  ansible.builtin.template:
+    src: gpsd.default.j2
+    dest: /etc/default/gpsd
+    mode: "0644"
+  notify: Restart gpsd
+
+- name: Take time from the GPS, and serve it to the local network
+  ansible.builtin.template:
+    src: chrony-gps.conf.j2
+    dest: /etc/chrony/conf.d/reticulum-gps.conf
+    mode: "0644"
+  notify: Restart chrony
+
+- name: Enable gpsd and chrony
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+  loop: [gpsd, chrony]
+
+- name: Start gpsd and chrony
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+  loop: [gpsd, chrony]
+  when: not reticulum_host_image_build

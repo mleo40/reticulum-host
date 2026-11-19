@@ -16,6 +16,19 @@
     state: directory
     mode: "0755"
 
+- name: Install the web page stylesheet
+  ansible.builtin.copy:
+    src: style.css
+    dest: "{{ reticulum_host_web_dir }}/style.css"
+    mode: "0644"
+
+- name: Create folders where other roles add web locations and page links
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: [/etc/nginx/reticulum-host.d, /etc/reticulum-host/links.d]
+
 - name: Install the user guide shown on the web page
   ansible.builtin.copy:
     src: user-guide.md

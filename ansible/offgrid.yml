@@ -1,0 +1,11 @@
+---
+# Configure Reticulum hosts with the off-grid suite. Needs the web page on (reticulum_host_http_files: true).
+# This machine: ansible-playbook -i localhost, -c local offgrid.yml -K -e reticulum_host_http_files=true
+- name: Reticulum host with the off-grid suite
+  hosts: all
+  become: true
+  vars:
+    reticulum_host_health_optional_units: [kiwix]
+  roles:
+    - reticulum_host
+    - offgrid_suite

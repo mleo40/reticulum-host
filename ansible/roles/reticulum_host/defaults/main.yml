@@ -76,6 +76,23 @@ reticulum_host_http_port: 80
 # host's IP address. Off by default; the ISO and Pi image turn it on.
 reticulum_host_mdns: false
 
+# Health page at /health.html beside the web page, rewritten every minute: time, GPS, power, disks, services and
+# Reticulum interfaces. Only when the web page is on. The GPS position can be left off the page.
+reticulum_host_health: true
+reticulum_host_health_position: true
+# More systemd units for the health page to report, such as those of the offgrid_suite role. Optional ones only run
+# when something they need is there, such as Kiwix's library drive, so being stopped is not a problem.
+reticulum_host_health_extra_units: []
+reticulum_host_health_optional_units: []
+
+# GPS (gpsd) and time (chrony): USB GPS receivers are used when plugged in; list other devices, such as a GPS board on
+# a Raspberry Pi's serial pins, in reticulum_host_gps_devices: [/dev/serial0]. chrony replaces systemd-timesyncd, uses
+# the GPS for time when there is no internet, and serves time to the local network. Off by default; the ISO and Pi
+# image turn it on.
+reticulum_host_gps: false
+reticulum_host_gps_devices: []
+reticulum_host_ntp_server: true
+
 # Firewall (nftables): drop incoming traffic except SSH, Reticulum and network setup.
 # Off by default so the role does not interfere with an existing firewall; the ISO and Pi image turn it on.
 reticulum_host_firewall: false

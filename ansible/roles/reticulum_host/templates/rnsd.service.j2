@@ -7,6 +7,10 @@ Wants=network-online.target
 [Service]
 User={{ reticulum_host_user }}
 ExecStart={{ reticulum_host_venv }}/bin/rnsd --config {{ reticulum_host_rns_dir }} --service
+# Count as started only once the shared instance answers, so the services that use it start after it. Otherwise one of
+# them can start its own instance first and write another transport identity, and rnsd then rejects tools such as
+# rnstatus. The control socket appears once rnsd has loaded its identity.
+ExecStartPost=/bin/sh -c 'for i in $(seq 1 120); do grep -q "@rns/default/rpc" /proc/net/unix && exit 0; sleep 0.5; done; exit 1'
 Restart=on-failure
 RestartSec=5
 

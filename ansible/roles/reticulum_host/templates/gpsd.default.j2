@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Devices gpsd always reads; USB receivers are added when plugged in
+DEVICES="{{ reticulum_host_gps_devices | join(' ') }}"
+USBAUTO="true"
+# -n: read the GPS even when no program is listening, so chrony always has its time
+GPSD_OPTIONS="-n"

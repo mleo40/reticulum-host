@@ -1,0 +1,7 @@
+---
+# Settings the ISO and the Raspberry Pi image are built with, on top of the role defaults. Pass them again when
+# rerunning the role on such a host: -e @image.yml
+reticulum_host_firewall: true
+reticulum_host_http_files: true
+reticulum_host_mdns: true
+reticulum_host_gps: true

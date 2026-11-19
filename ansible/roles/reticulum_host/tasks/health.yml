@@ -1,0 +1,25 @@
+---
+- name: Install the health page writer
+  ansible.builtin.copy:
+    src: reticulum-health.py
+    dest: "{{ reticulum_host_install_dir }}/bin/"
+    mode: "0755"
+
+- name: Install the health page units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: "0644"
+  loop: [reticulum-health.service, reticulum-health.timer]
+
+- name: Write the health page every minute
+  ansible.builtin.systemd_service:
+    name: reticulum-health.timer
+    enabled: true
+    daemon_reload: true
+
+- name: Start the health page timer
+  ansible.builtin.systemd_service:
+    name: reticulum-health.timer
+    state: started
+  when: not reticulum_host_image_build

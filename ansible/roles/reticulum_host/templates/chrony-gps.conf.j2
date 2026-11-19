@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+# Time from the GPS through gpsd. NMEA time is good to a few tenths of a second; internet time servers win when
+# reachable, and the GPS keeps the clock right without them.
+refclock SHM 0 refid GPS precision 1e-1 offset 0.2 delay 0.2
+{% if reticulum_host_ntp_server %}
+
+# Serve time to the local network
+allow 10.0.0.0/8
+allow 172.16.0.0/12
+allow 192.168.0.0/16
+allow fc00::/7
+allow fe80::/10
+{% endif %}

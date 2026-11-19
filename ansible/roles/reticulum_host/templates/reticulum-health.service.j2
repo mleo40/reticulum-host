@@ -1,0 +1,20 @@
+{% set units = reticulum_host_services + ['nginx', 'reticulum-banner']
+               + (['avahi-daemon'] if reticulum_host_mdns else [])
+               + (['reticulum-firewall'] if reticulum_host_firewall else [])
+               + (['gpsd', 'chrony'] if reticulum_host_gps else [])
+               + reticulum_host_health_extra_units %}
+# {{ ansible_managed }}
+[Unit]
+Description=Write the host's health page
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{ reticulum_host_venv }}/bin/python {{ reticulum_host_install_dir }}/bin/reticulum-health.py \
+  --out {{ reticulum_host_web_dir }}/health.html --venv {{ reticulum_host_venv }} \
+  --rnsconfig {{ reticulum_host_rns_dir }} \
+  --user {{ reticulum_host_user }}{{ ' --position' if reticulum_host_health_position else '' }} \
+  --disks / {{ reticulum_host_home }} {{ reticulum_host_http_files_dir }} \
+  --units {{ units | join(' ') }}{% if reticulum_host_health_optional_units %} \
+  --optional {{ reticulum_host_health_optional_units | join(' ') }}{% endif %}
+

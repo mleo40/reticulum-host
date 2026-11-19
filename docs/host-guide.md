@@ -34,9 +34,13 @@ serial radios such as an RNode.
 | `.local` name | `avahi-daemon` | Yes | `/etc/avahi/` | |
 | Firewall | `reticulum-firewall` | Yes | `/etc/reticulum-host/firewall.nft` | |
 | Login banner | `reticulum-banner` | Yes, runs once | Ansible variables | `/etc/issue.d/reticulum.issue`, `/etc/ssh/reticulum-banner` |
+| Health page | `reticulum-health.timer` | Yes, every minute | Ansible variables | `/srv/reticulum-host/www/health.html` |
+| GPS | `gpsd` | Yes | `/etc/default/gpsd` | |
+| Time | `chrony` | Yes | `/etc/chrony/conf.d/reticulum-gps.conf` | |
 
-The ISO and the Pi image are set up the same way. On a machine set up with the Ansible role, the web page, the
-`.local` name and the firewall are off unless you turn them on.
+The ISO and the Pi image are set up the same way. On a machine set up with the Ansible role, the web page and health
+page, the `.local` name, GPS and time, and the firewall are off unless you turn them on. The off-grid images add the
+programs in the [off-grid suite](offgrid-suite.md).
 
 Other locations:
 
@@ -75,11 +79,12 @@ keep the files owned by `reticulum`.
 
 **Set Ansible variables and rerun the role.** Best when you manage several hosts, or set the host up with the role.
 The variables are in `ansible/roles/reticulum_host/defaults/main.yml`; override them in your inventory. On the ISO or
-Pi image, you can rerun the copy on the host itself; it needs internet access:
+Pi image, you can rerun the copy on the host itself, with the playbook and settings the image was built with; it
+needs internet access:
 
 ```bash
 cd /opt/reticulum-host/ansible
-sudo ansible-playbook -i localhost, -c local site.yml
+sudo ansible-playbook -i localhost, -c local "$(cat /opt/reticulum-host/playbook)" -e @image.yml
 ```
 
 Running the role writes these files again and undoes hand edits to them:
@@ -129,6 +134,7 @@ incoming traffic except:
 | TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
 | TCP 80 | Web page and file sharing |
 | UDP 5353 | The `.local` name (mDNS) |
+| UDP 123 | Time for the local network (NTP) |
 | UDP 29716, 42671 | Reticulum AutoInterface on the local network |
 | UDP 68, 546 | Getting an address over DHCP |
 | ICMP | Ping, and IPv6 neighbour discovery |
@@ -487,6 +493,46 @@ Everything in the folder is public to anyone who can reach the host. Do not put 
 To turn it off: `sudo systemctl disable --now nginx`, and for the name `sudo systemctl disable --now avahi-daemon`.
 With Ansible, both are off by default for the role; turn them on with `reticulum_host_http_files: true` and
 `reticulum_host_mdns: true`, which also open their ports in the firewall.
+
+## Health page
+
+`http://reticulum-host.local/health.html`, linked from the host's page, shows at a glance whether the host is
+working. The top line says "All checks pass" or lists what needs attention. Below it:
+
+- **Services:** each unit's state. One that only runs when something it needs is there, such as Kiwix without its
+  library drive, shows as "stopped until needed" and is not a problem.
+- **Reticulum:** uptime, known paths, programs on the host, and each interface: up or down, clients, traffic, and
+  signal strength for radios.
+- **Time:** whether the clock is synchronised, its source, and whether the GPS is in use.
+- **GPS:** the receiver, fix, satellites and position.
+- **Power:** on a Raspberry Pi, under-voltage and throttling now and since boot. Under-voltage means the power supply
+  or battery is too weak.
+- **System:** uptime, load, CPU temperature, memory and free disk space.
+
+The `reticulum-health.timer` unit rewrites it every minute, as root, with `/opt/reticulum/bin/reticulum-health.py`.
+The page is on the local network for anyone who can reach the host. To leave the GPS position off it, set
+`reticulum_host_health_position: false`; to turn the page off, `reticulum_host_health: false`, or
+`sudo systemctl disable --now reticulum-health.timer`.
+
+## GPS and time
+
+A Raspberry Pi has no clock that keeps time while it is off, and without internet the host cannot set its clock, so
+messages and logs get the wrong time. A GPS receiver fixes that, and gives the host's position on the health page.
+
+- `gpsd` reads the GPS. USB receivers are used as soon as they are plugged in; most cheap USB GPS receivers work.
+- `chrony` keeps the clock. It uses internet time servers when it can reach them, and the GPS when it cannot. It also
+  serves time to the local network, so laptops and other devices can set their clocks from the host
+  (`reticulum-host.local` as their time server).
+- Settings: `/etc/default/gpsd` and `/etc/chrony/conf.d/reticulum-gps.conf`. Ansible variables:
+  `reticulum_host_gps` (on or off), `reticulum_host_gps_devices`, `reticulum_host_ntp_server`.
+
+A GPS board on a Raspberry Pi's serial pins is not found by itself: turn on the serial port with
+`sudo raspi-config` (Interface options, Serial port: no login shell, hardware enabled), set
+`DEVICES="/dev/serial0"` in `/etc/default/gpsd`, or `reticulum_host_gps_devices: [/dev/serial0]` with Ansible, then
+reboot.
+
+To check the GPS: `cgps` shows the fix and satellites, and `chronyc sources` lists `GPS` with `*` when chrony is using
+it. A receiver needs a view of the sky; the first fix can take several minutes.
 
 ## Troubleshooting
 

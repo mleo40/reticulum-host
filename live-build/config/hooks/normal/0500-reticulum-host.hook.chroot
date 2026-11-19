@@ -9,6 +9,7 @@ if ! mountpoint -q /dev/shm; then
   trap 'umount /dev/shm' EXIT
 fi
 
+# The build writes which playbook this image uses: site.yml, or offgrid.yml for the off-grid suite
 cd /opt/reticulum-host/ansible
-ansible-playbook -i localhost, -c local site.yml -e '{"reticulum_host_image_build": true, "reticulum_host_firewall": true, "reticulum_host_http_files": true, "reticulum_host_mdns": true}'
+ansible-playbook -i localhost, -c local "$(cat /opt/reticulum-host/playbook)" -e @image.yml -e '{"reticulum_host_image_build": true}'
 systemctl enable ssh-hostkeys.service

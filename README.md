@@ -14,6 +14,10 @@ There are three ways to get a host, all built from the same Ansible role:
 - **ISO** (`live-build/`): boot a host from a USB stick, or install it to disk.
 - **Raspberry Pi image** (`pi/`): write it to an SD card.
 
+The ISO and the Pi image each come in two types: the **standard** Reticulum host, and the **off-grid** image, which
+adds the programs in the [off-grid suite](docs/offgrid-suite.md), such as a Kiwix offline library, from a second
+Ansible role.
+
 Every machine creates its own Reticulum identities, so its own addresses, and SSH host keys on first boot. The
 images hold no per-machine identifiers; their builds fail if any remain.
 
@@ -29,11 +33,14 @@ images hold no per-machine identifiers; their builds fail if any remain.
 | Nomad Network page node | Text pages, with a starter front page | `nomadnet` | no |
 | Web page | The host's addresses and the user guide, and shared files | `nginx` | yes |
 | `.local` name | Opens the web page at `http://reticulum-host.local/` without knowing the IP address | `avahi-daemon` | yes |
-| Firewall | Lets in only SSH, Reticulum, the web page and the `.local` name | `reticulum-firewall` | yes |
+| Health page | Services, Reticulum interfaces, time, GPS, power and disks at a glance | `reticulum-health.timer` | yes |
+| GPS and time | Keeps the clock right from a GPS receiver without internet, and serves it to the network | `gpsd`, `chrony` | yes |
+| Firewall | Lets in only SSH, Reticulum, the web page, the `.local` name and time | `reticulum-firewall` | yes |
 
 Every item is in both the ISO and the Pi image. The Ansible role installs the same set, but on a machine you already
-have it leaves the web page, the `.local` name and the firewall off, so they do not clash with what the machine
-already runs; see [Set up a machine with the Ansible role](#set-up-a-machine-with-the-ansible-role).
+have it leaves the web and health pages, the `.local` name, GPS and time, and the firewall off, so they do not clash
+with what the machine already runs; see
+[Set up a machine with the Ansible role](#set-up-a-machine-with-the-ansible-role).
 
 The console and SSH login banners list the host's addresses, which the operator hands out to users. The host also
 has `git`, `ansible` and the Reticulum command line tools. Versions are pinned: rns 1.6.1, lxmf 1.3.1, nomadnet 1.5.0,
@@ -45,6 +52,8 @@ Partyline 1.0.5 and RetiBBS at a fixed commit; the full list is in
 - [User guide](ansible/roles/reticulum_host/files/user-guide.md): for people who connect to a host; which app to use
   for each service. It is also the host's web page, below the host's addresses. Short
   enough to print for an event.
+- [Off-grid suite](docs/offgrid-suite.md): the off-grid images' extra programs, and how to prepare the drive for the
+  offline library.
 - [Host guide](docs/host-guide.md): for operators; each program's user, unit, settings and admin tasks, the firewall
   and troubleshooting.
 - [Back up and restore RetiBBS](docs/retibbs-backup.md): keep a standby copy of a bulletin board at another site.
@@ -97,9 +106,14 @@ reticulum_host_extra_interfaces:
               bandwidth: 125000, txpower: 7, spreadingfactor: 8, codingrate: 5}
 ```
 
-The role leaves the web page, the `.local` name and the firewall off, so they do not clash with a machine's existing
-setup; turn them on with `reticulum_host_http_files: true`, `reticulum_host_mdns: true` and
-`reticulum_host_firewall: true`.
+The role leaves the web and health pages, the `.local` name, GPS and time, and the firewall off, so they do not clash
+with a machine's existing setup. To set a machine up like the images, pass the settings they are built with:
+
+```bash
+ansible-playbook -i localhost, -c local site.yml -K -e @image.yml
+```
+
+For the off-grid suite as well, run `offgrid.yml` instead of `site.yml`; see [Off-grid suite](docs/offgrid-suite.md).
 
 The `ansible` folder stands alone; copy it anywhere.
 
@@ -132,16 +146,18 @@ The build copies your checkout into the build VM, so it builds exactly what you 
    virsh -c qemu:///system start reticulum-build
    ```
 
-4. Build. This takes 20 to 40 minutes:
+4. Build. This takes 20 to 40 minutes. For the off-grid image, add `offgrid`:
 
    ```bash
    ./build-iso.sh
+   ./build-iso.sh offgrid
    ```
 
-The ISO is copied to `build/reticulum-host-amd64.hybrid.iso`. Write it to a USB stick with `dd` or any image writer.
+The ISO is copied to `build/reticulum-host-amd64.hybrid.iso`, or `build/reticulum-offgrid-amd64.hybrid.iso`. Write it
+to a USB stick with `dd` or any image writer.
 
-To build without the VM on any Debian 13 machine, install `live-build` and run `sudo live-build/build.sh` from the
-checkout.
+To build without the VM on any Debian 13 machine, install `live-build` and run
+`sudo live-build/build.sh <output-dir> [host|offgrid]` from the checkout.
 
 ### Use the ISO
 
@@ -165,18 +181,21 @@ inside it. It uses the build VM from the ISO steps and runs the Pi's arm64 progr
 
 1. Create and start the build VM as in [Build the ISO](#build-the-iso), steps 1 to 3.
 
-2. Build. This downloads Raspberry Pi OS Lite (about 525 MB) to `build/` the first time and checks its SHA-256:
+2. Build. This downloads Raspberry Pi OS Lite (about 525 MB) to `build/` the first time and checks its SHA-256. For
+   the off-grid image, add `offgrid`:
 
    ```bash
    ./build-pi-image.sh
+   ./build-pi-image.sh offgrid
    ```
 
-The image is copied to `build/reticulum-host-pi-arm64.img.xz`. To build without the VM on any Debian 13 machine, run
-`sudo pi/build-image.sh <raspios-lite-arm64.img.xz>` from the checkout.
+The image is copied to `build/reticulum-host-pi-arm64.img.xz`, or `build/reticulum-offgrid-pi-arm64.img.xz`. To
+build without the VM on any Debian 13 machine, run
+`sudo pi/build-image.sh <raspios-lite-arm64.img.xz> <output-dir> [host|offgrid]` from the checkout.
 
 ### Use the Pi image
 
-Write `reticulum-host-pi-arm64.img.xz` to an SD card with Raspberry Pi Imager ("Use custom"), and set the user name,
+Write the image to an SD card with Raspberry Pi Imager ("Use custom"), and set the user name,
 password, SSH and Wi-Fi in its settings. Without them, the first boot asks for a user on the console and SSH stays
 off. On first boot the card's file system grows to fill it, and the host creates its own SSH host keys and
 Reticulum identities.
@@ -195,6 +214,9 @@ existing hosts, and rebuild the ISO and the Pi image.
 
 ## Revision history
 
+- 0.7.0: Health page; GPS and time served to the local network; off-grid images with a Kiwix offline library, from
+  the new `offgrid_suite` role; image settings in `ansible/image.yml`; services start once `rnsd` is ready, which fixes
+  `rnstatus` and other tools being rejected after the first boot
 - 0.6.0: The web page lists the host's addresses and the user guide, at `http://reticulum-host.local/`; shared
   files move to `/files/`
 - 0.5.1: User guide; README reorganised by setup method; first admin steps, SSH and the firewall moved in the host

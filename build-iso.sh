@@ -1,10 +1,13 @@
 #!/bin/sh
 # Build the live ISO in the build VM and copy it to build/.
-# Usage: build-iso.sh [vm-name]
+# Usage: build-iso.sh [host|offgrid] [vm-name]
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
-name=${1:-reticulum-build}
+profile=${1:-host}
+name=${2:-reticulum-build}
+case "$profile" in host | offgrid) ;; *) echo "Unknown profile $profile; use host or offgrid" >&2; exit 1 ;; esac
+iso=reticulum-$profile-amd64.hybrid.iso
 # The VM can hold an old DHCP lease too; use the address that answers SSH
 target=""
 for address in $(virsh -c qemu:///system domifaddr "$name" | awk '/ipv4/ {sub("/.*", "", $4); print $4}'); do
@@ -17,9 +20,9 @@ done
 
 tar -C "$here" --exclude ./build --exclude ./.git --exclude ./.idea -czf - . | \
   ssh "$target" 'rm -rf reticulum-host && mkdir reticulum-host && tar -C reticulum-host -xzf -'
-ssh "$target" 'sudo reticulum-host/live-build/build.sh /home/build && sudo chown build: /home/build/*.iso'
+ssh "$target" "sudo reticulum-host/live-build/build.sh /home/build $profile && sudo chown build: /home/build/*.iso"
 mkdir -p "$here/build"
 # A VM that booted the previous ISO leaves it owned by libvirt; replace rather than overwrite
-rm -f "$here/build/reticulum-host-amd64.hybrid.iso"
-scp "$target:reticulum-host-amd64.hybrid.iso" "$here/build/"
-echo "Built $here/build/reticulum-host-amd64.hybrid.iso"
+rm -f "$here/build/$iso"
+scp "$target:$iso" "$here/build/"
+echo "Built $here/build/$iso"

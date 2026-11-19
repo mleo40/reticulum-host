@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Offline library drive
+
+[Mount]
+What=/dev/disk/by-label/{{ offgrid_suite_kiwix_drive_label }}
+Where={{ offgrid_suite_kiwix_dir }}
+Type=auto
+Options=ro
+TimeoutSec=30
+
+[Install]
+# Mount when the drive appears, at boot or when plugged in later; it is unmounted when removed
+WantedBy={{ offgrid_suite_kiwix_device_unit }}.device

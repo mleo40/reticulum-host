@@ -1,0 +1,12 @@
+---
+# Kiwix serves offline copies of Wikipedia, medical and repair guides and more, from ZIM files on an external drive.
+# The images hold no ZIM files. Label the drive OFFGRID-ZIM and put the .zim files at its top level; plugging it in
+# mounts it read only and starts Kiwix, and removing it stops Kiwix. The library is at /library/ on the host's web page.
+offgrid_suite_kiwix: true
+offgrid_suite_kiwix_dir: /srv/offgrid/zim
+offgrid_suite_kiwix_drive_label: OFFGRID-ZIM
+# Port kiwix-serve listens on, on this host only; nginx serves it at /library/
+offgrid_suite_kiwix_port: 8090
+# systemd names units after paths: /srv/offgrid/zim is srv-offgrid-zim, the drive label after /dev/disk/by-label/
+offgrid_suite_kiwix_device_unit: "dev-disk-by\\x2dlabel-{{ offgrid_suite_kiwix_drive_label | replace('-', '\\x2d') }}"
+offgrid_suite_kiwix_mount_unit: "{{ offgrid_suite_kiwix_dir.strip('/') | replace('-', '\\x2d') | replace('/', '-') }}"

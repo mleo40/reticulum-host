@@ -24,7 +24,8 @@
     group: "{{ reticulum_host_user }}"
     mode: "0750"
   loop: ["{{ reticulum_host_home }}", "{{ reticulum_host_rns_dir }}", "{{ reticulum_host_retibbs_dir }}",
-         "{{ reticulum_host_retibbs_dir }}/themes", "{{ reticulum_host_rngit_dir }}", "{{ reticulum_host_partyline_dir }}",
+         "{{ reticulum_host_retibbs_dir }}/themes", "{{ reticulum_host_rngit_dir }}",
+         "{{ reticulum_host_partyline_dir }}",
          "{{ reticulum_host_nomadnet_dir }}", "{{ reticulum_host_nomadnet_dir }}/storage",
          "{{ reticulum_host_nomadnet_dir }}/storage/pages", "{{ reticulum_host_nomadnet_dir }}/storage/files",
          "{{ reticulum_host_lxmd_dir }}"]
@@ -174,6 +175,14 @@
 - name: Set up the .local name
   ansible.builtin.include_tasks: mdns.yml
   when: reticulum_host_mdns
+
+- name: Set up GPS and time
+  ansible.builtin.include_tasks: gps.yml
+  when: reticulum_host_gps
+
+- name: Set up the health page
+  ansible.builtin.include_tasks: health.yml
+  when: reticulum_host_http_files and reticulum_host_health
 
 - name: Find Reticulum identities created during the image build
   ansible.builtin.find:

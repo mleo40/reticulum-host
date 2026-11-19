@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Kiwix offline library
+# Runs while the library drive is mounted, and only when it holds ZIM files
+BindsTo={{ offgrid_suite_kiwix_mount_unit }}.mount
+After=network.target {{ offgrid_suite_kiwix_mount_unit }}.mount
+ConditionPathExistsGlob={{ offgrid_suite_kiwix_dir }}/*.zim
+
+[Service]
+DynamicUser=yes
+ExecStart=/bin/sh -c 'exec /usr/bin/kiwix-serve --address 127.0.0.1 --port {{ offgrid_suite_kiwix_port }} \
+  --urlRootLocation /library --skipInvalid {{ offgrid_suite_kiwix_dir }}/*.zim'
+Restart=on-failure
+RestartSec=10
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy={{ offgrid_suite_kiwix_mount_unit }}.mount

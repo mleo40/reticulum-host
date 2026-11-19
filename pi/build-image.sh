@@ -1,14 +1,20 @@
 #!/bin/sh
 # Build a Reticulum host SD card image for 64-bit Raspberry Pi from Raspberry Pi OS Lite.
 # Run as root on Debian 13 (any CPU); arm64 programs in the image run through qemu-user-static.
-# Usage: build-image.sh <raspios-lite-arm64.img.xz> [output-dir]
+# Usage: build-image.sh <raspios-lite-arm64.img.xz> [output-dir] [host|offgrid]
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 source_image=$1
 output=${2:-$here/..}
+profile=${3:-host}
+case "$profile" in
+  host) playbook=site.yml ;;
+  offgrid) playbook=offgrid.yml ;;
+  *) echo "Unknown profile $profile; use host or offgrid" >&2; exit 1 ;;
+esac
 work=/var/tmp/reticulum-pi
-image=$work/reticulum-host-pi-arm64.img
+image=$work/reticulum-$profile-pi-arm64.img
 mnt=$work/mnt
 grow=3G
 
@@ -64,6 +70,7 @@ chmod 755 "$mnt/usr/sbin/policy-rc.d"
 
 mkdir -p "$mnt/opt/reticulum-host"
 cp -a "$here/../ansible" "$mnt/opt/reticulum-host/"
+echo "$playbook" > "$mnt/opt/reticulum-host/playbook"
 cp "$here/../live-build/config/includes.chroot/etc/systemd/system/ssh-hostkeys.service" "$mnt/etc/systemd/system/"
 cp "$here/../live-build/config/hooks/normal/9990-purge-identifiers.hook.chroot" "$mnt/tmp/purge-identifiers"
 
@@ -72,9 +79,7 @@ chroot "$mnt" /bin/sh -eu -c '
   apt-get update
   apt-get install -y ansible
   cd /opt/reticulum-host/ansible
-  ansible-playbook -i localhost, -c local site.yml \
-    -e "{\"reticulum_host_image_build\": true, \"reticulum_host_firewall\": true, \"reticulum_host_http_files\": true,
-         \"reticulum_host_mdns\": true}"
+  ansible-playbook -i localhost, -c local "$(cat /opt/reticulum-host/playbook)" -e @image.yml -e "{\"reticulum_host_image_build\": true}"
   systemctl enable ssh-hostkeys.service
   # The same name as the ISO, so the web page is at http://reticulum-host.local/; Raspberry Pi Imager can change it
   echo reticulum-host > /etc/hostname

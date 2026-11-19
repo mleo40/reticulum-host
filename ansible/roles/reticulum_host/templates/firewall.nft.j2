@@ -39,6 +39,10 @@ table inet reticulum_host {
 
     udp dport 5353 accept comment "mDNS, for the .local name"
 {% endif %}
+{% if reticulum_host_gps and reticulum_host_ntp_server %}
+
+    udp dport 123 accept comment "Time for the local network (NTP)"
+{% endif %}
 {% for item in reticulum_host_firewall_extra_ports %}
 
     {{ item.proto }} dport {{ item.port }} accept

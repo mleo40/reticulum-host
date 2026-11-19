@@ -1,0 +1,51 @@
+---
+- name: Install Kiwix
+  ansible.builtin.apt:
+    name: kiwix-tools
+    state: present
+
+- name: Create the library folder
+  ansible.builtin.file:
+    path: "{{ offgrid_suite_kiwix_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Mount the library drive, read only, whenever it is plugged in
+  ansible.builtin.template:
+    src: library.mount.j2
+    dest: "/etc/systemd/system/{{ offgrid_suite_kiwix_mount_unit }}.mount"
+    mode: "0644"
+
+- name: Install the Kiwix unit
+  ansible.builtin.template:
+    src: kiwix.service.j2
+    dest: /etc/systemd/system/kiwix.service
+    mode: "0644"
+  notify: Restart Kiwix
+
+- name: Serve the library at /library/
+  ansible.builtin.template:
+    src: nginx-kiwix.conf.j2
+    dest: /etc/nginx/reticulum-host.d/kiwix.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Add the page shown while there is no library
+  ansible.builtin.copy:
+    src: library-missing.html
+    dest: "{{ reticulum_host_web_dir }}/library-missing.html"
+    mode: "0644"
+
+- name: Link the library from the host's page
+  ansible.builtin.copy:
+    content: "Offline library|/library/\n"
+    dest: /etc/reticulum-host/links.d/50-library
+    mode: "0644"
+
+# Enabling ties the mount to the drive appearing, and Kiwix to the mount
+- name: Enable the library drive and Kiwix
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    daemon_reload: true
+  loop: ["{{ offgrid_suite_kiwix_mount_unit }}.mount", kiwix.service]

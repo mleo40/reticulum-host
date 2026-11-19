@@ -1,0 +1,21 @@
+/* Shared by the host's web page and health page */
+:root { color-scheme: light dark; --muted: #666; --line: #ccc; --code: #f2f2f2; }
+:root { --ok: #1a7f37; --warn: #9a6700; --bad: #cf222e; }
+@media (prefers-color-scheme: dark) {
+  :root { --muted: #aaa; --line: #444; --code: #2a2a2a; --ok: #3fb950; --warn: #d29922; --bad: #f85149; }
+}
+body { font: 16px/1.5 system-ui, sans-serif; max-width: 52rem; margin: 0 auto; padding: 1rem; }
+h1 { margin-bottom: 0.2rem; }
+.when { color: var(--muted); margin-top: 0; }
+table { border-collapse: collapse; margin: 0.5rem 0 1rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 0.35rem 0.6rem 0.35rem 0; text-align: left; }
+th, td { vertical-align: top; }
+code, pre { background: var(--code); border-radius: 4px; }
+code { padding: 0.1rem 0.25rem; overflow-wrap: anywhere; }
+pre { padding: 0.6rem; overflow-x: auto; }
+code.addr { user-select: all; font-size: 1.05rem; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+.bad { color: var(--bad); font-weight: 600; }
+.summary { font-size: 1.2rem; }

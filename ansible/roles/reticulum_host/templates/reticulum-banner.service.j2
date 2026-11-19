@@ -1,10 +1,16 @@
 {% set args = ['--home', reticulum_host_home, '--port', reticulum_host_tcp_port if reticulum_host_tcp_server else 0,
                 '--issue', '/etc/issue.d/reticulum.issue'] %}
 {% if 'nomadnet' in reticulum_host_services %}{% set args = args + ['--nomadnet'] %}{% endif %}
-{% if 'lxmd' in reticulum_host_services and reticulum_host_lxmd_propagation %}{% set args = args + ['--propagation'] %}{% endif %}
-{% if reticulum_host_http_files %}{% set args = args + ['--http-port', reticulum_host_http_port, '--web-root', reticulum_host_web_dir,
-                                                         '--guide', reticulum_host_install_dir ~ '/share/user-guide.md'] %}{% endif %}
+{% if 'lxmd' in reticulum_host_services and reticulum_host_lxmd_propagation %}
+{%   set args = args + ['--propagation'] %}
+{% endif %}
+{% if reticulum_host_http_files %}
+{%   set args = args + ['--http-port', reticulum_host_http_port, '--web-root', reticulum_host_web_dir,
+                        '--guide', reticulum_host_install_dir ~ '/share/user-guide.md',
+                        '--links', '/etc/reticulum-host/links.d'] %}
+{% endif %}
 {% if reticulum_host_mdns %}{% set args = args + ['--mdns'] %}{% endif %}
+{% if reticulum_host_http_files and reticulum_host_health %}{% set args = args + ['--health'] %}{% endif %}
 {% if reticulum_host_ssh_banner %}{% set args = args + ['--ssh-banner', '/etc/ssh/reticulum-banner'] %}{% endif %}
 # {{ ansible_managed }}
 [Unit]
