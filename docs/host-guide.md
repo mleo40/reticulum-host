@@ -30,10 +30,13 @@ serial radios such as an RNode.
 | Reticulum git node | `rngit` | Yes | `/var/lib/reticulum/rngit/config` | `/var/lib/reticulum/rngit/` |
 | LXMF propagation node | `lxmd` | Yes | `/var/lib/reticulum/lxmd/config` | `/var/lib/reticulum/lxmd/storage/` |
 | Nomad Network page node | `nomadnet` | No | `/var/lib/reticulum/nomadnet/config` | `/var/lib/reticulum/nomadnet/storage/` |
-| Web page and file sharing | `nginx` | ISO and Pi image only | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/` |
-| `.local` name | `avahi-daemon` | ISO and Pi image only | `/etc/avahi/` | |
-| Firewall | `reticulum-firewall` | ISO and Pi image only | `/etc/reticulum-host/firewall.nft` | |
+| Web page and file sharing | `nginx` | Yes | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/` |
+| `.local` name | `avahi-daemon` | Yes | `/etc/avahi/` | |
+| Firewall | `reticulum-firewall` | Yes | `/etc/reticulum-host/firewall.nft` | |
 | Login banner | `reticulum-banner` | Yes, runs once | Ansible variables | `/etc/issue.d/reticulum.issue`, `/etc/ssh/reticulum-banner` |
+
+The ISO and the Pi image are set up the same way. On a machine set up with the Ansible role, the web page, the
+`.local` name and the firewall are off unless you turn them on.
 
 Other locations:
 

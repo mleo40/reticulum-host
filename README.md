@@ -19,7 +19,7 @@ images hold no per-machine identifiers; their builds fail if any remain.
 
 ## What a host provides
 
-| Service | For users | Unit | On |
+| Service | For users | Unit | On by default |
 |---|---|---|---|
 | Reticulum node | Joins the local network, TCP port 4242 and any radios, and routes between them | `rnsd` | yes |
 | LXMF propagation node | Holds messages for people who are offline | `lxmd` | yes |
@@ -27,8 +27,13 @@ images hold no per-machine identifiers; their builds fail if any remain.
 | Partyline | Voice rooms: Lobby (Opus 8 kbps) and Low bandwidth (Codec2 1200 bps) | `partyline` | yes |
 | Reticulum git node | Git repositories, cloned with `git clone rns://...` | `rngit` | yes |
 | Nomad Network page node | Text pages, with a starter front page | `nomadnet` | no |
-| Web page | The host's addresses and the user guide at `http://reticulum-host.local/`, and shared files | `nginx` | ISO and Pi |
-| Firewall | Lets in only SSH, Reticulum and the web server | `reticulum-firewall` | ISO and Pi |
+| Web page | The host's addresses and the user guide, and shared files | `nginx` | yes |
+| `.local` name | Opens the web page at `http://reticulum-host.local/` without knowing the IP address | `avahi-daemon` | yes |
+| Firewall | Lets in only SSH, Reticulum, the web page and the `.local` name | `reticulum-firewall` | yes |
+
+Every item is in both the ISO and the Pi image. The Ansible role installs the same set, but on a machine you already
+have it leaves the web page, the `.local` name and the firewall off, so they do not clash with what the machine
+already runs; see [Set up a machine with the Ansible role](#set-up-a-machine-with-the-ansible-role).
 
 The console and SSH login banners list the host's addresses, which the operator hands out to users. The host also
 has `git`, `ansible` and the Reticulum command line tools. Versions are pinned: rns 1.6.1, lxmf 1.3.1, nomadnet 1.5.0,
