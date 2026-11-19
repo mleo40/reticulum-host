@@ -1,7 +1,8 @@
 # Reticulum host guide
 
 How to run a host built from the ISO, the Raspberry Pi image or the Ansible role: what each program is, which user it
-runs as, how to start and stop it, and where its settings live.
+runs as, how to start and stop it, and where its settings live. For the people who connect to the host, see the
+[user guide](user-guide.md).
 
 ## Log in
 
@@ -91,6 +92,61 @@ Running the role writes these files again and undoes hand edits to them:
 It never touches the RetiBBS databases, the rngit config, stored LXMF messages, Nomad Network pages, or any
 identity. It adds a starter `index.mu` page only when there is none.
 
+## Login banner
+
+The `reticulum-banner` unit runs once at each boot, after the services have started, and writes the host's
+addresses into the console and SSH login banners.
+
+Run it again after the addresses change, for example after restoring a RetiBBS identity:
+
+```bash
+sudo systemctl restart reticulum-banner
+```
+
+Ansible variables: `reticulum_host_banner` (both banners) and `reticulum_host_ssh_banner` (the SSH one).
+
+## SSH
+
+- On an installed host, SSH is on. Host keys are created on first boot by the `ssh-hostkeys` unit.
+- In the ISO's live session, SSH is off because the live password is public. To turn it on for one session, set a
+  new password with `passwd`, then `sudo systemctl start ssh`.
+- On the Raspberry Pi image, SSH follows the setting you chose in Raspberry Pi Imager. To turn it on later:
+  `sudo systemctl enable --now ssh`.
+
+## Firewall
+
+Hosts built from the ISO or the Raspberry Pi image have a firewall (nftables, unit `reticulum-firewall`). It drops
+incoming traffic except:
+
+| Port | Used by |
+|---|---|
+| TCP 22 | SSH |
+| TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
+| TCP 80 | Web file sharing |
+| UDP 29716, 42671 | Reticulum AutoInterface on the local network |
+| UDP 68, 546 | Getting an address over DHCP |
+| ICMP | Ping, and IPv6 neighbour discovery |
+
+Replies to connections the host makes are allowed, and outgoing traffic is not limited. Partyline, RetiBBS, rngit
+and Nomad Network pages need no ports of their own: they all travel over Reticulum.
+
+The rules are in `/etc/reticulum-host/firewall.nft`. To open another port, for example for a Reticulum
+`UDPInterface`, add a line such as `udp dport 4243 accept` next to the others, then:
+
+```bash
+sudo nft -c -f /etc/reticulum-host/firewall.nft   # check the rules first
+sudo systemctl reload reticulum-firewall
+sudo nft list table inet reticulum_host           # show the rules in use
+```
+
+To turn it off: `sudo systemctl disable --now reticulum-firewall`.
+
+With Ansible: the firewall is off by default for the role, so it does not get in the way of a firewall the machine
+already has. Turn it on with `reticulum_host_firewall: true`. `reticulum_host_firewall_ssh: false` closes SSH, and
+`reticulum_host_firewall_extra_ports` opens more, for example `[{proto: udp, port: 4243}]`.
+
+The firewall is a separate nftables table. If the machine has other nftables or ufw rules, a packet must pass both.
+
 ## Reticulum (rnsd)
 
 The shared Reticulum instance. Every other program on the host, and any Reticulum program you run yourself, connects
@@ -143,8 +199,7 @@ A bulletin board with message boards and chat rooms. Clients connect to its addr
 
 Admin tasks are done in its databases with `sqlite3`:
 
-- Make the first admin: see [Make the first RetiBBS admin](../README.md#make-the-first-retibbs-admin). Later admins
-  can be made from a client.
+- Make the first admin: see below. Later admins can be made from a client.
 - Delete a post: RetiBBS has no command for it. Back up `boards.db`, then delete the post and its replies, using the
   post number shown in the client:
 
@@ -155,6 +210,30 @@ Admin tasks are done in its databases with `sqlite3`:
   ```
 
 - Back up and restore: see [Back up and restore RetiBBS](retibbs-backup.md).
+
+### Make the first admin
+
+A new RetiBBS server has no admin, and only admins can create boards. RetiBBS has no command for the first one, so set
+it in its user database:
+
+1. Connect to the BBS once from a client and pick a display name. RetiBBS adds your account on first connect.
+
+2. On the host, list the accounts and find your identity hash (32 hex characters) by your name:
+
+   ```bash
+   sudo sqlite3 /var/lib/reticulum/retibbs/users.db "SELECT hash_hex, name, is_admin FROM users;"
+   ```
+
+3. Make that account admin. It prints `1` when a row was updated, `0` when the hash did not match:
+
+   ```bash
+   sudo sqlite3 /var/lib/reticulum/retibbs/users.db \
+     "UPDATE users SET is_admin=1 WHERE hash_hex='<your hash>'; SELECT changes();"
+   ```
+
+4. In the client, check your account again. No restart is needed.
+
+Use the full path: `sqlite3 users.db` in another folder creates a new, empty database there.
 
 ### Run a second BBS
 
@@ -172,7 +251,8 @@ no change. These steps make `retibbs2`; use another name for a third.
 2. Copy the settings and give it its own name in `server_name`:
 
    ```bash
-   sudo install -o reticulum -g reticulum -m 644 /var/lib/reticulum/retibbs/server_config.json /var/lib/reticulum/retibbs2/
+   sudo install -o reticulum -g reticulum -m 644 /var/lib/reticulum/retibbs/server_config.json \
+     /var/lib/reticulum/retibbs2/
    sudo nano /var/lib/reticulum/retibbs2/server_config.json
    ```
 
@@ -196,12 +276,13 @@ no change. These steps make `retibbs2`; use another name for a third.
 5. Show its address, to give to users. The login banner shows only the first BBS:
 
    ```bash
-   sudo -u reticulum rnid --config /var/lib/reticulum/rns -i /var/lib/reticulum/retibbs2/server_identity.pem -H retibbs.bbs
+   sudo -u reticulum rnid --config /var/lib/reticulum/rns \
+     -i /var/lib/reticulum/retibbs2/server_identity.pem -H retibbs.bbs
    ```
 
    The address is the `retibbs.bbs destination` it prints.
 
-6. Make its first admin as in [Make the first RetiBBS admin](../README.md#make-the-first-retibbs-admin), using
+6. Make its first admin as in [Make the first admin](#make-the-first-admin), using
    `/var/lib/reticulum/retibbs2/users.db`. The same `sqlite3` admin tasks above work on its folder.
 
 Start, stop and logs work as for the first, with `retibbs2`. Rerunning the Ansible role leaves `retibbs2` alone, but
@@ -390,57 +471,18 @@ Everything in the folder is public to anyone who can reach the host. Do not put 
 To turn it off: `sudo systemctl disable --now nginx`. With Ansible, it is off by default for the role; turn it on with
 `reticulum_host_http_files: true`, which also opens its port in the firewall.
 
-## Login banner
+## Troubleshooting
 
-The `reticulum-banner` unit runs once at each boot, after the services have started, and writes the host's
-addresses into the console and SSH login banners.
-
-Run it again after the addresses change, for example after restoring a RetiBBS identity:
-
-```bash
-sudo systemctl restart reticulum-banner
-```
-
-Ansible variables: `reticulum_host_banner` (both banners) and `reticulum_host_ssh_banner` (the SSH one).
-
-## SSH
-
-- On an installed host, SSH is on. Host keys are created on first boot by the `ssh-hostkeys` unit.
-- In the ISO's live session, SSH is off because the live password is public. To turn it on for one session, set a
-  new password with `passwd`, then `sudo systemctl start ssh`.
-- On the Raspberry Pi image, SSH follows the setting you chose in Raspberry Pi Imager. To turn it on later:
-  `sudo systemctl enable --now ssh`.
-
-## Firewall
-
-Hosts built from the ISO or the Raspberry Pi image have a firewall (nftables, unit `reticulum-firewall`). It drops
-incoming traffic except:
-
-| Port | Used by |
-|---|---|
-| TCP 22 | SSH |
-| TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
-| TCP 80 | Web file sharing |
-| UDP 29716, 42671 | Reticulum AutoInterface on the local network |
-| UDP 68, 546 | Getting an address over DHCP |
-| ICMP | Ping, and IPv6 neighbour discovery |
-
-Replies to connections the host makes are allowed, and outgoing traffic is not limited. Partyline, RetiBBS, rngit
-and Nomad Network pages need no ports of their own: they all travel over Reticulum.
-
-The rules are in `/etc/reticulum-host/firewall.nft`. To open another port, for example for a Reticulum
-`UDPInterface`, add a line such as `udp dport 4243 accept` next to the others, then:
-
-```bash
-sudo nft -c -f /etc/reticulum-host/firewall.nft   # check the rules first
-sudo systemctl reload reticulum-firewall
-sudo nft list table inet reticulum_host           # show the rules in use
-```
-
-To turn it off: `sudo systemctl disable --now reticulum-firewall`.
-
-With Ansible: the firewall is off by default for the role, so it does not get in the way of a firewall the machine
-already has. Turn it on with `reticulum_host_firewall: true`. `reticulum_host_firewall_ssh: false` closes SSH, and
-`reticulum_host_firewall_extra_ports` opens more, for example `[{proto: udp, port: 4243}]`.
-
-The firewall is a separate nftables table. If the machine has other nftables or ufw rules, a packet must pass both.
+- **A service is not running:** `sudo systemctl status <unit>` shows the last log lines, and
+  `sudo journalctl -u <unit> -b` everything since boot. A settings file with a typo is the usual cause; fix it and
+  restart the unit.
+- **The banner says "not created yet":** that service had not started when the banner was written. Start it, then
+  `sudo systemctl restart reticulum-banner`.
+- **Clients cannot find the host:** check that `rnsd` is running and that `rnstatus` shows the interfaces up. Over
+  TCP, check the client uses the host's IP address and port 4242, and that no other firewall blocks it. On the local
+  network, guest Wi-Fi that keeps devices apart stops AutoInterface; use TCP there.
+- **Clients find the host but not a service:** services announce themselves on start and then every few hours; a
+  client that started earlier may need a minute, or to request the address again. `rnpath <address>` on the host
+  shows whether the address is known.
+- **Hand edits disappeared:** rerunning the Ansible role writes the files listed in
+  [Changing settings](#changing-settings) again. Set the matching Ansible variables instead.
