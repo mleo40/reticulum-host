@@ -72,7 +72,7 @@ chroot "$mnt" /bin/sh -eu -c '
   apt-get update
   apt-get install -y ansible
   cd /opt/reticulum-host/ansible
-  ansible-playbook -i localhost, -c local site.yml -e "{\"reticulum_host_image_build\": true}"
+  ansible-playbook -i localhost, -c local site.yml -e "{\"reticulum_host_image_build\": true, \"reticulum_host_firewall\": true, \"reticulum_host_http_files\": true}"
   systemctl enable ssh-hostkeys.service
   apt-get clean
   rm -rf /var/lib/apt/lists/* /root/.cache /root/.ansible
@@ -85,7 +85,7 @@ cp -P "$work/resolv.conf.orig" "$mnt/etc/resolv.conf"
 
 # Check the finished file system, not only the build steps
 found=$(cd "$mnt" && find etc/ssh root var/lib/reticulum -regextype posix-extended \
-  -regex 'etc/ssh/ssh_host_[a-z0-9]+_key(\.pub)?|root/\.reticulum(/.*)?|var/lib/reticulum/.*(identity|\.pem|/storage(/.*)?)' \
+  -regex 'etc/ssh/ssh_host_[a-z0-9]+_key(\.pub)?|root/\.reticulum(/.*)?|var/lib/reticulum/.*(identity|\.pem)|var/lib/reticulum/rns/storage(/.*)?' \
   -print 2> /dev/null || true)
 machine_id=$(cat "$mnt/etc/machine-id" 2> /dev/null || true)
 if [ -n "$found" ] || { [ -n "$machine_id" ] && [ "$machine_id" != uninitialized ]; }; then

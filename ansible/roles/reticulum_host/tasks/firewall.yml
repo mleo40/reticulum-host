@@ -1,0 +1,39 @@
+---
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Create the firewall folder
+  ansible.builtin.file:
+    path: /etc/reticulum-host
+    state: directory
+    mode: "0755"
+
+- name: Write the firewall rules
+  ansible.builtin.template:
+    src: firewall.nft.j2
+    dest: /etc/reticulum-host/firewall.nft
+    mode: "0644"
+    # Checking needs the running kernel, which an emulated image build may not offer
+    validate: "{{ omit if reticulum_host_image_build else '/usr/sbin/nft -c -f %s' }}"
+  notify: Reload the firewall
+
+- name: Install the firewall unit
+  ansible.builtin.template:
+    src: reticulum-firewall.service.j2
+    dest: /etc/systemd/system/reticulum-firewall.service
+    mode: "0644"
+  notify: Reload the firewall
+
+- name: Enable the firewall
+  ansible.builtin.systemd_service:
+    name: reticulum-firewall.service
+    enabled: true
+    daemon_reload: true
+
+- name: Start the firewall
+  ansible.builtin.systemd_service:
+    name: reticulum-firewall.service
+    state: started
+  when: not reticulum_host_image_build

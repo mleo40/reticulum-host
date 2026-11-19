@@ -35,6 +35,10 @@ per-machine identifiers from the image and fails if any remain.
   | `partyline` | Partyline voice room server | yes |
   | `rngit` | Reticulum git repository node | yes |
   | `lxmd` | LXMF router and propagation node | no |
+  | `nomadnet` | Nomad Network page node, with a starter front page | no |
+
+- On the ISO and the Pi image, a shared folder that anyone on the local network can download from with a web
+  browser, and a firewall that only lets in SSH, Reticulum and that web server
 
 ## Compatibility
 
@@ -154,12 +158,14 @@ Reticulum identities.
 ## Use the ISO
 
 - **Live**: boot "Live system". The host runs from memory and creates new Reticulum identities, so new addresses, on
-  every boot. Log in on the console as `rnsadmin`, password `live`. SSH is off in live sessions, since that password
-  is public.
+  every boot. The console logs in automatically as `rnsadmin` once the addresses are shown; its password, for
+  `sudo` and other consoles, is `live`. SSH is off in live sessions, since that password is public.
 - **Live with persistence**: to keep identities and data across live boots, add a partition labelled `persistence`
   to the USB stick holding a `persistence.conf` with the line `/ union`.
-- **Install**: boot "Install" for the Debian installer, which asks for the disk, user and password. The installed
-  host keeps its identities and runs SSH.
+- **Install**: boot "Start installer". Language, keyboard, network, time zone and partitioning are answered for you
+  (English, US keyboard, UTC, the whole disk); the installer asks for your name, user name and password, which disk
+  when there is more than one, and before it erases the disk. It reboots when done; remove the USB stick. The
+  installed host keeps its identities, runs SSH, and boots with Secure Boot on or off.
 
 ## Use a host
 
@@ -202,6 +208,8 @@ existing hosts, and rebuild the ISO.
 
 ## Revision history
 
+- 0.4.0: Nomad Network page node; web file sharing and a firewall on the ISO and Pi image; the ISO's live login
+  works and installed systems boot with Secure Boot on
 - 0.3.0: Raspberry Pi image
 - 0.2.0: Partyline voice rooms; complete ISO build steps
 - 0.1.0: First version

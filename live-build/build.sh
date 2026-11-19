@@ -27,7 +27,7 @@ lb build
 # Check the finished image, not only the build steps
 iso=reticulum-host-amd64.hybrid.iso
 ssh_keys='etc/ssh/ssh_host_[a-z0-9]+_key(\.pub)?'
-reticulum='root/\.reticulum(/.*)?|var/lib/reticulum/.*(identity|\.pem|/storage(/.*)?)'
+reticulum='root/\.reticulum(/.*)?|var/lib/reticulum/.*(identity|\.pem)|var/lib/reticulum/rns/storage(/.*)?'
 identifiers="^squashfs-root/($ssh_keys|$reticulum)\$"
 found=$(unsquashfs -l binary/live/filesystem.squashfs | grep -E "$identifiers" || true)
 machine_id=$(unsquashfs -cat binary/live/filesystem.squashfs etc/machine-id)

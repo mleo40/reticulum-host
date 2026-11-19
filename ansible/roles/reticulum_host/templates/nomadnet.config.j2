@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# Nomad Network as a page node. Pages: {{ reticulum_host_nomadnet_dir }}/storage/pages
+[logging]
+  loglevel = {{ reticulum_host_loglevel }}
+
+[node]
+  enable_node = yes
+  node_name = {{ reticulum_host_nomadnet_node_name }}
+  announce_interval = {{ reticulum_host_nomadnet_announce_interval }}
+  announce_at_start = yes
+  # Pick up new pages and files every minute, without a restart
+  page_refresh_interval = 1
+  file_refresh_interval = 1
+  # lxmd is the better propagation node; this node only serves pages and files
+  disable_propagation = yes

@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Nomad Network page node
+After=rnsd.service
+Requires=rnsd.service
+
+[Service]
+User={{ reticulum_host_user }}
+ExecStart={{ reticulum_host_venv }}/bin/nomadnet --daemon --console \
+  --config {{ reticulum_host_nomadnet_dir }} \
+  --rnsconfig {{ reticulum_host_rns_dir }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

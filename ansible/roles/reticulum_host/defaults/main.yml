@@ -8,6 +8,7 @@ reticulum_host_rns_dir: "{{ reticulum_host_home }}/rns"
 reticulum_host_retibbs_dir: "{{ reticulum_host_home }}/retibbs"
 reticulum_host_rngit_dir: "{{ reticulum_host_home }}/rngit"
 reticulum_host_partyline_dir: "{{ reticulum_host_home }}/partyline"
+reticulum_host_nomadnet_dir: "{{ reticulum_host_home }}/nomadnet"
 
 reticulum_host_install_dir: /opt/reticulum
 reticulum_host_venv: "{{ reticulum_host_install_dir }}/venv"
@@ -45,8 +46,25 @@ reticulum_host_partyline_rooms:
   - {name: Lobby, description: Open to everyone}
   - {name: Low bandwidth, profile: c2-1200, description: Codec2 for slow links}
 
-# Systemd units to enable; lxmd is installed but not run by default
+# Nomad Network page node; pages go in /var/lib/reticulum/nomadnet/storage/pages
+reticulum_host_nomadnet_node_name: Reticulum host
+reticulum_host_nomadnet_announce_interval: 360
+
+# Systemd units to enable; lxmd and nomadnet are installed but not run by default
 reticulum_host_services: [rnsd, retibbs, rngit, partyline]
+
+# Web file sharing: nginx serves one folder as a plain file list over HTTP, read only. The same folder is shared by
+# the Nomad Network page node. Off by default; the ISO and Pi image turn it on.
+reticulum_host_http_files: false
+reticulum_host_http_files_dir: /srv/reticulum-host/files
+reticulum_host_http_port: 80
+
+# Firewall (nftables): drop incoming traffic except SSH, Reticulum and network setup.
+# Off by default so the role does not interfere with an existing firewall; the ISO and Pi image turn it on.
+reticulum_host_firewall: false
+reticulum_host_firewall_ssh: true
+# More ports to open, for example a Reticulum UDPInterface: [{proto: udp, port: 4243}]
+reticulum_host_firewall_extra_ports: []
 
 # Show this host's Reticulum addresses in the console login banner, and in the SSH login banner
 reticulum_host_banner: true

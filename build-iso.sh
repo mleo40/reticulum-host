@@ -8,7 +8,7 @@ name=${1:-reticulum-build}
 # The VM can hold an old DHCP lease too; use the address that answers SSH
 target=""
 for address in $(virsh -c qemu:///system domifaddr "$name" | awk '/ipv4/ {sub("/.*", "", $4); print $4}'); do
-  if ssh -o BatchMode=yes -o ConnectTimeout=5 "build@$address" true 2> /dev/null; then
+  if ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new "build@$address" true 2> /dev/null; then
     target="build@$address"
     break
   fi

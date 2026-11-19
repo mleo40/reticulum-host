@@ -1,0 +1,43 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# Incoming traffic this host accepts. Everything else is dropped; outgoing traffic is not limited.
+# This table sits next to any other nftables rules: a packet must pass all of them.
+
+table inet reticulum_host
+delete table inet reticulum_host
+
+table inet reticulum_host {
+  chain input {
+    type filter hook input priority filter; policy drop;
+
+    ct state established,related accept
+    ct state invalid drop
+    iif lo accept
+
+    # Ping, and the IPv6 neighbour discovery that IPv6 and AutoInterface need
+    meta l4proto { icmp, ipv6-icmp } accept
+
+    # Address setup over DHCP
+    udp dport 68 accept
+    udp dport 546 accept
+{% if reticulum_host_firewall_ssh %}
+
+    tcp dport 22 accept comment "SSH"
+{% endif %}
+{% if reticulum_host_tcp_server %}
+
+    tcp dport {{ reticulum_host_tcp_port }} accept comment "Reticulum TCP server"
+{% endif %}
+
+    # Reticulum AutoInterface: peer discovery and data on the local network
+    udp dport { 29716, 42671 } accept comment "Reticulum AutoInterface"
+{% if reticulum_host_http_files %}
+
+    tcp dport {{ reticulum_host_http_port }} accept comment "Web file sharing"
+{% endif %}
+{% for item in reticulum_host_firewall_extra_ports %}
+
+    {{ item.proto }} dport {{ item.port }} accept
+{% endfor %}
+  }
+}

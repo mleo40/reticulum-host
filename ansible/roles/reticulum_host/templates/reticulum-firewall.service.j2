@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Reticulum host firewall
+# Load after nftables.service, whose ruleset starts by flushing everything
+After=nftables.service
+Before=network-pre.target
+Wants=network-pre.target
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/reticulum-host/firewall.nft
+ExecReload=/usr/sbin/nft -f /etc/reticulum-host/firewall.nft
+ExecStop=/usr/sbin/nft delete table inet reticulum_host
+
+[Install]
+WantedBy=multi-user.target

@@ -6,8 +6,9 @@ rm -f /etc/ssh/ssh_host_*
 : > /etc/machine-id
 rm -f /var/lib/dbus/machine-id /var/lib/systemd/random-seed
 rm -rf /root/.reticulum /etc/issue.d/reticulum.issue /etc/ssh/reticulum-banner
+rm -rf /var/lib/reticulum/rns/storage
 if [ -d /var/lib/reticulum ]; then
-  find /var/lib/reticulum \( -name '*identity' -o -name '*.pem' -o -name storage \) -prune -exec rm -rf {} +
+  find /var/lib/reticulum \( -name '*identity' -o -name '*.pem' \) -exec rm -f {} +
 fi
 
 left=$(find /etc/ssh /var/lib/reticulum /root \( -name 'ssh_host_*' -o -name '*identity' -o -name '*.pem' \) -print)

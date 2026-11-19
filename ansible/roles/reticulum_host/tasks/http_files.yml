@@ -1,0 +1,49 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Create the shared files folder
+  ansible.builtin.file:
+    path: "{{ reticulum_host_http_files_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Share the folder through the Nomad Network page node too
+  ansible.builtin.file:
+    src: "{{ reticulum_host_http_files_dir }}"
+    dest: "{{ reticulum_host_nomadnet_dir }}/storage/files/shared"
+    state: link
+    force: true
+
+- name: Write the web site
+  ansible.builtin.template:
+    src: nginx-files.conf.j2
+    dest: /etc/nginx/sites-available/reticulum-files
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable the web site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/reticulum-files
+    dest: /etc/nginx/sites-enabled/reticulum-files
+    state: link
+  notify: Reload nginx
+
+- name: Remove the nginx welcome site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Enable nginx
+  ansible.builtin.systemd_service:
+    name: nginx
+    enabled: true
+
+- name: Start nginx
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: started
+  when: not reticulum_host_image_build

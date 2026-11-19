@@ -7,7 +7,7 @@ runs as, how to start and stop it, and where its settings live.
 
 | Built from | User | SSH |
 |---|---|---|
-| ISO, live session | `rnsadmin`, password `live` | Off |
+| ISO, live session | `rnsadmin`, logged in automatically; password `live` | Off |
 | ISO, installed to disk | The user you created in the installer | On |
 | Raspberry Pi image | The user you set in Raspberry Pi Imager, or created at first boot | On if you enabled it in Imager |
 | Ansible role | Your existing users | Unchanged |
@@ -28,6 +28,9 @@ serial radios such as an RNode.
 | Partyline | `partyline` | Yes | `/var/lib/reticulum/partyline/server.json` | `/var/lib/reticulum/partyline/` |
 | Reticulum git node | `rngit` | Yes | `/var/lib/reticulum/rngit/config` | `/var/lib/reticulum/rngit/` |
 | LXMF router | `lxmd` | No | `/var/lib/reticulum/lxmd/config` | `/var/lib/reticulum/lxmd/` |
+| Nomad Network page node | `nomadnet` | No | `/var/lib/reticulum/nomadnet/config` | `/var/lib/reticulum/nomadnet/storage/` |
+| Web file sharing | `nginx` | ISO and Pi image only | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/files/` |
+| Firewall | `reticulum-firewall` | ISO and Pi image only | `/etc/reticulum-host/firewall.nft` | |
 | Login banner | `reticulum-banner` | Yes, runs once | Ansible variables | `/etc/issue.d/reticulum.issue`, `/etc/ssh/reticulum-banner` |
 
 Other locations:
@@ -79,9 +82,13 @@ Running the role writes these files again and undoes hand edits to them:
 - `/var/lib/reticulum/rns/config`
 - `/var/lib/reticulum/retibbs/server_config.json` and the `default` and `radio` themes
 - `/var/lib/reticulum/partyline/server.json`
+- `/var/lib/reticulum/nomadnet/config`
+- `/etc/reticulum-host/firewall.nft`, when the firewall is on
+- `/etc/nginx/sites-available/reticulum-files`, when web file sharing is on
 - The unit files in `/etc/systemd/system`
 
-It never touches the RetiBBS databases, the rngit and lxmd configs, or any identity.
+It never touches the RetiBBS databases, the rngit and lxmd configs, Nomad Network pages, or any identity. It adds a
+starter `index.mu` page only when there is none.
 
 ## Reticulum (rnsd)
 
@@ -223,15 +230,100 @@ To make it a propagation node, which holds messages for others while they are of
 `enable_node = yes` in the `[propagation]` section of its settings and restart it. To keep it on when you manage the host with Ansible, add `lxmd`
 to `reticulum_host_services`.
 
-## Nomad Network
+## Nomad Network pages
 
-A text client for Nomad Network pages and messages. It is not a service; run it as your own user:
+The host can serve Nomad Network pages: text pages, written in Micron, that people browse with Nomad Network or
+MeshChat. The page node is installed but off.
+
+- Runs as `reticulum`, unit `nomadnet`.
+- Settings: `/var/lib/reticulum/nomadnet/config`. Ansible variables: `reticulum_host_nomadnet_node_name`,
+  `reticulum_host_nomadnet_announce_interval` (minutes).
+- Pages: `/var/lib/reticulum/nomadnet/storage/pages/`. `index.mu` is the front page; the host starts with a short one.
+- Files to download: `/var/lib/reticulum/nomadnet/storage/files/`.
+- Identity: `storage/identity`, which decides the node address. Once it exists, the login banner shows the address
+  as "Nomad Network pages".
+
+To turn it on:
+
+```bash
+sudo systemctl enable --now nomadnet
+sudo systemctl restart reticulum-banner
+```
+
+To keep it on when you manage the host with Ansible, add `nomadnet` to `reticulum_host_services`.
+
+### Where to put pages
+
+Put pages that should always be reachable, such as a group's front page, net schedules or local information, on the
+host. It is always on and announces the node to the network every 6 hours.
+
+Pages must be readable by the `reticulum` user. Edit and add them as that user:
+
+```bash
+sudo -u reticulum nano /var/lib/reticulum/nomadnet/storage/pages/index.mu
+sudo -u reticulum nano /var/lib/reticulum/nomadnet/storage/pages/schedule.mu
+```
+
+To copy pages written on another computer:
+
+```bash
+scp *.mu <you>@<host>:
+sudo install -o reticulum -g reticulum -m 0640 ~/*.mu /var/lib/reticulum/nomadnet/storage/pages/
+```
+
+Edits to a page show up at once, and new pages and files within a minute; no restart is needed.
+
+Link between pages with Micron links such as `` `[Net schedule`:/page/schedule.mu] ``, and to files with
+`` `[Go-kit list`:/file/gokit.pdf] ``.
+
+A page file marked executable (`chmod +x`) is run as a program each time it is requested, and what it prints is the
+page. It runs as `reticulum`, so keep such programs short and trusted.
+
+To limit who can see a page, put a file with `.allowed` added to its name next to it, such as
+`schedule.mu.allowed`, listing the allowed identity hashes one per line.
+
+Personal pages can also live on a person's own computer: Nomad Network serves `~/.nomadnetwork/storage/pages` when
+`enable_node = yes` is set in `~/.nomadnetwork/config`. Those pages are only reachable while that computer is on.
+
+### Browse pages from the host
+
+`nomadnet` is also a text client. Run it as your own user; it keeps its settings in `~/.nomadnetwork`:
 
 ```bash
 nomadnet
 ```
 
-It connects through the shared instance and keeps its settings in `~/.nomadnetwork`.
+## Web file sharing
+
+The host shares one folder over plain HTTP, so anyone on its local network can download from it with a web browser,
+for example phones joined to the same Wi-Fi. It is a read-only file list: no uploads, no logins, no scripts.
+
+- Runs as nginx's own `www-data` user, unit `nginx`.
+- Folder: `/srv/reticulum-host/files/`. Subfolders show up as folders in the list.
+- Address: `http://<host address>/`, shown in the login banner as "Web files".
+- Settings: `/etc/nginx/sites-available/reticulum-files`. Ansible variables: `reticulum_host_http_files` (on or
+  off), `reticulum_host_http_files_dir`, `reticulum_host_http_port`.
+
+The same folder is also shared over Reticulum by the Nomad Network page node, when that is on, as
+`/file/shared/...`. People with only a radio link can download from it there, more slowly. Link to a shared file from
+a page with `` `[Go-kit list`:/file/shared/gokit.pdf] ``.
+
+To add files, copy them to your home folder on the host, then into the folder:
+
+```bash
+scp go-kit.pdf <you>@<host>:
+sudo install -m 0644 ~/go-kit.pdf /srv/reticulum-host/files/
+sudo mkdir -p /srv/reticulum-host/files/manuals
+```
+
+Files must be readable by everyone (`0644`, folders `0755`); that is what `install -m 0644` and `mkdir` give. New
+files show up in the web list at once, and through the page node within a minute. Files whose names start with a dot
+are never shared.
+
+Everything in the folder is public to anyone who can reach the host. Do not put anything private in it.
+
+To turn it off: `sudo systemctl disable --now nginx`. With Ansible, it is off by default for the role; turn it on with
+`reticulum_host_http_files: true`, which also opens its port in the firewall.
 
 ## Login banner
 
@@ -254,12 +346,36 @@ Ansible variables: `reticulum_host_banner` (both banners) and `reticulum_host_ss
 - On the Raspberry Pi image, SSH follows the setting you chose in Raspberry Pi Imager. To turn it on later:
   `sudo systemctl enable --now ssh`.
 
-## Network ports
+## Firewall
+
+Hosts built from the ISO or the Raspberry Pi image have a firewall (nftables, unit `reticulum-firewall`). It drops
+incoming traffic except:
 
 | Port | Used by |
 |---|---|
-| TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
-| UDP 29716, 42671 | Reticulum AutoInterface on the local network |
 | TCP 22 | SSH |
+| TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
+| TCP 80 | Web file sharing |
+| UDP 29716, 42671 | Reticulum AutoInterface on the local network |
+| UDP 68, 546 | Getting an address over DHCP |
+| ICMP | Ping, and IPv6 neighbour discovery |
 
-The host has no firewall set up. If you add one, open these ports.
+Replies to connections the host makes are allowed, and outgoing traffic is not limited. Partyline, RetiBBS, rngit
+and Nomad Network pages need no ports of their own: they all travel over Reticulum.
+
+The rules are in `/etc/reticulum-host/firewall.nft`. To open another port, for example for a Reticulum
+`UDPInterface`, add a line such as `udp dport 4243 accept` next to the others, then:
+
+```bash
+sudo nft -c -f /etc/reticulum-host/firewall.nft   # check the rules first
+sudo systemctl reload reticulum-firewall
+sudo nft list table inet reticulum_host           # show the rules in use
+```
+
+To turn it off: `sudo systemctl disable --now reticulum-firewall`.
+
+With Ansible: the firewall is off by default for the role, so it does not get in the way of a firewall the machine
+already has. Turn it on with `reticulum_host_firewall: true`. `reticulum_host_firewall_ssh: false` closes SSH, and
+`reticulum_host_firewall_extra_ports` opens more, for example `[{proto: udp, port: 4243}]`.
+
+The firewall is a separate nftables table. If the machine has other nftables or ufw rules, a packet must pass both.

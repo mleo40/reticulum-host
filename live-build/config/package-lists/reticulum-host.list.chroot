@@ -1,7 +1,14 @@
 live-boot
 live-config
 live-config-systemd
+user-setup
+# Signed boot loader, so installed systems boot with Secure Boot on
+grub-efi-amd64-signed
+shim-signed
 systemd-sysv
+# Recommended by systemd: systemctl for normal users, and clock sync
+dbus
+systemd-timesyncd
 openssh-server
 sudo
 git
