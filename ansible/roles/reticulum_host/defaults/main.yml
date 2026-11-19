@@ -64,11 +64,17 @@ reticulum_host_lxmd_autopeer_maxdepth: 6
 # Systemd units to enable; nomadnet is installed but not run by default
 reticulum_host_services: [rnsd, retibbs, rngit, partyline, lxmd]
 
-# Web file sharing: nginx serves one folder as a plain file list over HTTP, read only. The same folder is shared by
-# the Nomad Network page node. Off by default; the ISO and Pi image turn it on.
+# Web page and file sharing: nginx serves a page with this host's addresses and the user guide, written at each boot,
+# and one folder as a plain file list under /files/, read only. The folder is also shared by the Nomad Network page
+# node. Off by default; the ISO and Pi image turn it on.
 reticulum_host_http_files: false
 reticulum_host_http_files_dir: /srv/reticulum-host/files
+reticulum_host_web_dir: /srv/reticulum-host/www
 reticulum_host_http_port: 80
+
+# Answer to <hostname>.local on the local network (mDNS, avahi), so people can open the web page without knowing the
+# host's IP address. Off by default; the ISO and Pi image turn it on.
+reticulum_host_mdns: false
 
 # Firewall (nftables): drop incoming traffic except SSH, Reticulum and network setup.
 # Off by default so the role does not interfere with an existing firewall; the ISO and Pi image turn it on.

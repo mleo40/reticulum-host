@@ -72,8 +72,13 @@ chroot "$mnt" /bin/sh -eu -c '
   apt-get update
   apt-get install -y ansible
   cd /opt/reticulum-host/ansible
-  ansible-playbook -i localhost, -c local site.yml -e "{\"reticulum_host_image_build\": true, \"reticulum_host_firewall\": true, \"reticulum_host_http_files\": true}"
+  ansible-playbook -i localhost, -c local site.yml \
+    -e "{\"reticulum_host_image_build\": true, \"reticulum_host_firewall\": true, \"reticulum_host_http_files\": true,
+         \"reticulum_host_mdns\": true}"
   systemctl enable ssh-hostkeys.service
+  # The same name as the ISO, so the web page is at http://reticulum-host.local/; Raspberry Pi Imager can change it
+  echo reticulum-host > /etc/hostname
+  sed -i "s/raspberrypi/reticulum-host/" /etc/hosts
   apt-get clean
   rm -rf /var/lib/apt/lists/* /root/.cache /root/.ansible
   sh /tmp/purge-identifiers

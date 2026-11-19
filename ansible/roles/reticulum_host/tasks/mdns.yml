@@ -1,0 +1,23 @@
+---
+- name: Install avahi
+  ansible.builtin.apt:
+    name: avahi-daemon
+    state: present
+
+- name: Advertise the web page
+  ansible.builtin.template:
+    src: avahi-http.service.j2
+    dest: /etc/avahi/services/reticulum-host.service
+    mode: "0644"
+  when: reticulum_host_http_files
+
+- name: Enable avahi
+  ansible.builtin.systemd_service:
+    name: avahi-daemon
+    enabled: true
+
+- name: Start avahi
+  ansible.builtin.systemd_service:
+    name: avahi-daemon
+    state: started
+  when: not reticulum_host_image_build

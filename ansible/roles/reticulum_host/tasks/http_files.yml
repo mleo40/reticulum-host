@@ -10,6 +10,29 @@
     state: directory
     mode: "0755"
 
+- name: Create the web page folder
+  ansible.builtin.file:
+    path: "{{ reticulum_host_web_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Install the user guide shown on the web page
+  ansible.builtin.copy:
+    src: user-guide.md
+    dest: "{{ reticulum_host_install_dir }}/share/"
+    mode: "0644"
+
+- name: Add a page shown until the first boot writes the real one
+  ansible.builtin.copy:
+    content: |
+      <!doctype html>
+      <html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="15">
+      <title>Reticulum host</title></head>
+      <body><p>The host is starting. This page shows its addresses within two minutes.</p></body></html>
+    dest: "{{ reticulum_host_web_dir }}/index.html"
+    mode: "0644"
+    force: false
+
 - name: Share the folder through the Nomad Network page node too
   ansible.builtin.file:
     src: "{{ reticulum_host_http_files_dir }}"

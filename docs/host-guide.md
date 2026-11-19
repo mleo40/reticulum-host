@@ -2,7 +2,7 @@
 
 How to run a host built from the ISO, the Raspberry Pi image or the Ansible role: what each program is, which user it
 runs as, how to start and stop it, and where its settings live. For the people who connect to the host, see the
-[user guide](user-guide.md).
+[user guide](../ansible/roles/reticulum_host/files/user-guide.md), which is also the host's web page.
 
 ## Log in
 
@@ -30,7 +30,8 @@ serial radios such as an RNode.
 | Reticulum git node | `rngit` | Yes | `/var/lib/reticulum/rngit/config` | `/var/lib/reticulum/rngit/` |
 | LXMF propagation node | `lxmd` | Yes | `/var/lib/reticulum/lxmd/config` | `/var/lib/reticulum/lxmd/storage/` |
 | Nomad Network page node | `nomadnet` | No | `/var/lib/reticulum/nomadnet/config` | `/var/lib/reticulum/nomadnet/storage/` |
-| Web file sharing | `nginx` | ISO and Pi image only | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/files/` |
+| Web page and file sharing | `nginx` | ISO and Pi image only | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/` |
+| `.local` name | `avahi-daemon` | ISO and Pi image only | `/etc/avahi/` | |
 | Firewall | `reticulum-firewall` | ISO and Pi image only | `/etc/reticulum-host/firewall.nft` | |
 | Login banner | `reticulum-banner` | Yes, runs once | Ansible variables | `/etc/issue.d/reticulum.issue`, `/etc/ssh/reticulum-banner` |
 
@@ -86,7 +87,8 @@ Running the role writes these files again and undoes hand edits to them:
 - `/var/lib/reticulum/lxmd/config`
 - `/var/lib/reticulum/nomadnet/config`
 - `/etc/reticulum-host/firewall.nft`, when the firewall is on
-- `/etc/nginx/sites-available/reticulum-files`, when web file sharing is on
+- `/etc/nginx/sites-available/reticulum-files` and `/opt/reticulum/share/user-guide.md`, when the web page is on
+- `/etc/avahi/services/reticulum-host.service`, when the `.local` name is on
 - The unit files in `/etc/systemd/system`
 
 It never touches the RetiBBS databases, the rngit config, stored LXMF messages, Nomad Network pages, or any
@@ -95,7 +97,7 @@ identity. It adds a starter `index.mu` page only when there is none.
 ## Login banner
 
 The `reticulum-banner` unit runs once at each boot, after the services have started, and writes the host's
-addresses into the console and SSH login banners.
+addresses into the console and SSH login banners, and onto the web page.
 
 Run it again after the addresses change, for example after restoring a RetiBBS identity:
 
@@ -122,7 +124,8 @@ incoming traffic except:
 |---|---|
 | TCP 22 | SSH |
 | TCP 4242 | Reticulum TCP server, for clients and other nodes over IP |
-| TCP 80 | Web file sharing |
+| TCP 80 | Web page and file sharing |
+| UDP 5353 | The `.local` name (mDNS) |
 | UDP 29716, 42671 | Reticulum AutoInterface on the local network |
 | UDP 68, 546 | Getting an address over DHCP |
 | ICMP | Ping, and IPv6 neighbour discovery |
@@ -439,16 +442,26 @@ Personal pages can also live on a person's own computer: Nomad Network serves `~
 nomadnet
 ```
 
-## Web file sharing
+## Web page and file sharing
 
-The host shares one folder over plain HTTP, so anyone on its local network can download from it with a web browser,
-for example phones joined to the same Wi-Fi. It is a read-only file list: no uploads, no logins, no scripts.
+The host has a web page for the people who connect to it, so a host with no screen can still be found and used. Anyone
+on its local network opens it in a browser at `http://reticulum-host.local/`, or at the host's IP address. The page
+lists the host's addresses, then the [user guide](../ansible/roles/reticulum_host/files/user-guide.md). Under it,
+`/files/` shares one folder as a read-only file list: no uploads, no logins, no scripts.
 
 - Runs as nginx's own `www-data` user, unit `nginx`.
-- Folder: `/srv/reticulum-host/files/`. Subfolders show up as folders in the list.
-- Address: `http://<host address>/`, shown in the login banner as "Web files".
+- Page: `/srv/reticulum-host/www/index.html`, written by the `reticulum-banner` unit at each boot. Do not edit it;
+  edit the guide in the Ansible role instead, at `ansible/roles/reticulum_host/files/user-guide.md`, and rerun the
+  role. On the host, the copy the page uses is `/opt/reticulum/share/user-guide.md`.
+- Files: `/srv/reticulum-host/files/`, at `http://reticulum-host.local/files/`. Subfolders show up as folders.
 - Settings: `/etc/nginx/sites-available/reticulum-files`. Ansible variables: `reticulum_host_http_files` (on or
-  off), `reticulum_host_http_files_dir`, `reticulum_host_http_port`.
+  off), `reticulum_host_http_files_dir`, `reticulum_host_web_dir`, `reticulum_host_http_port`.
+
+The `.local` name comes from avahi (mDNS), unit `avahi-daemon`, and follows the host name: `reticulum-host` on the ISO
+and the Pi image, unless you chose another in the installer or Raspberry Pi Imager. A second host with the same name
+on the network answers to `reticulum-host-2.local`; give each host its own name instead, with
+`sudo hostnamectl set-hostname <name>` and a reboot. `.local` names work on most phones and computers but not all, so
+the page is also reachable by IP. Ansible variable: `reticulum_host_mdns`.
 
 The same folder is also shared over Reticulum by the Nomad Network page node, when that is on, as
 `/file/shared/...`. People with only a radio link can download from it there, more slowly. Link to a shared file from
@@ -468,8 +481,9 @@ are never shared.
 
 Everything in the folder is public to anyone who can reach the host. Do not put anything private in it.
 
-To turn it off: `sudo systemctl disable --now nginx`. With Ansible, it is off by default for the role; turn it on with
-`reticulum_host_http_files: true`, which also opens its port in the firewall.
+To turn it off: `sudo systemctl disable --now nginx`, and for the name `sudo systemctl disable --now avahi-daemon`.
+With Ansible, both are off by default for the role; turn them on with `reticulum_host_http_files: true` and
+`reticulum_host_mdns: true`, which also open their ports in the firewall.
 
 ## Troubleshooting
 

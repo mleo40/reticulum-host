@@ -33,7 +33,11 @@ table inet reticulum_host {
     udp dport { 29716, 42671 } accept comment "Reticulum AutoInterface"
 {% if reticulum_host_http_files %}
 
-    tcp dport {{ reticulum_host_http_port }} accept comment "Web file sharing"
+    tcp dport {{ reticulum_host_http_port }} accept comment "Web page and file sharing"
+{% endif %}
+{% if reticulum_host_mdns %}
+
+    udp dport 5353 accept comment "mDNS, for the .local name"
 {% endif %}
 {% for item in reticulum_host_firewall_extra_ports %}
 

@@ -171,6 +171,10 @@
   ansible.builtin.include_tasks: banner.yml
   when: reticulum_host_banner
 
+- name: Set up the .local name
+  ansible.builtin.include_tasks: mdns.yml
+  when: reticulum_host_mdns
+
 - name: Find Reticulum identities created during the image build
   ansible.builtin.find:
     paths: ["{{ reticulum_host_home }}"]

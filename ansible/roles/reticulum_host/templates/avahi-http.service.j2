@@ -1,0 +1,10 @@
+<?xml version="1.0" standalone="no"?>
+<!-- {{ ansible_managed }} -->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h Reticulum host</name>
+  <service>
+    <type>_http._tcp</type>
+    <port>{{ reticulum_host_http_port }}</port>
+  </service>
+</service-group>

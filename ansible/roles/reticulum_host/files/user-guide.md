@@ -5,22 +5,27 @@ service. You never log in to the host itself. The person who runs it is called t
 
 ## The host's addresses
 
-Each service on the host has its own address, 32 characters long, such as `0e4118a2242aef7d92e41be8c57aa3b8`. The
-operator gets them from the host's login banner and hands them out. Copy them exactly.
+On the same network as the host, open its web page in a browser: <http://reticulum-host.local/>. It lists the host's
+addresses, written when it last started, followed by this guide. If that name does not open, use the host's IP
+address instead, such as `http://192.168.1.20/`; the operator can read it from the host's login banner or the
+router's list of connected devices.
 
-| Banner line | What it is | App |
+Each service on the host has its own address, 32 characters long, such as `0e4118a2242aef7d92e41be8c57aa3b8`. Copy
+them exactly.
+
+| Line | What it is | App |
 |---|---|---|
 | TCP interface | The host's IP address and port, for connecting over a network | Any Reticulum app |
+| Web page | This page and the shared files | Any web browser |
 | LXMF propagation | Holds your messages while you are offline | Sideband, MeshChat, Columba |
 | RetiBBS | Bulletin board and chat rooms | RetiBBS client |
 | Partyline voice | Voice rooms | Partyline |
-| Web files | Files to download | Any web browser |
 | Nomad Network pages | Text pages, when the operator has turned them on | MeshChat, Nomad Network |
 | Git repositories | Git repositories | `git` with Reticulum installed |
 
 The transport identity and git node pages lines are for operators.
 
-A host started from a USB stick without installing ("live") gets new addresses every time it starts. Ask for them
+A host started from a USB stick without installing ("live") gets new addresses every time it starts. Open the page
 again after a restart.
 
 ## Reach the host
@@ -81,10 +86,10 @@ partyline
 Choose Connect, add the server by its Partyline voice address, and double click a room. Lobby uses more bandwidth
 and sounds better; Low bandwidth works over slow links such as radio.
 
-## Web files
+## Shared files
 
-Open the Web files link, such as `http://192.168.1.20/`, in a web browser on the same network as the host, and
-download what you need. Everything there is public; you cannot upload.
+On the host's web page, choose Shared files, or open <http://reticulum-host.local/files/>, and download what you need.
+Everything there is public; you cannot upload.
 
 ## Pages
 
@@ -106,4 +111,6 @@ git clone rns://<Git repositories address>/public/myproject
   address and port 4242. Guest and hotel Wi-Fi often keeps devices apart; use TCP there.
 - **An address is not found:** right after the host or your app starts, give it a minute, then try again. Check the
   address for typos.
-- **It worked yesterday:** a live host has new addresses after each restart. Ask the operator for the new ones.
+- **The web page does not open:** `.local` names work on most phones and computers, but not all; use the host's IP
+  address instead. A second host on the same network answers to `reticulum-host-2.local`.
+- **It worked yesterday:** a live host has new addresses after each restart. Open the web page again.

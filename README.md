@@ -27,7 +27,7 @@ images hold no per-machine identifiers; their builds fail if any remain.
 | Partyline | Voice rooms: Lobby (Opus 8 kbps) and Low bandwidth (Codec2 1200 bps) | `partyline` | yes |
 | Reticulum git node | Git repositories, cloned with `git clone rns://...` | `rngit` | yes |
 | Nomad Network page node | Text pages, with a starter front page | `nomadnet` | no |
-| Web file sharing | A folder anyone on the local network can download from with a browser | `nginx` | ISO and Pi |
+| Web page | The host's addresses and the user guide at `http://reticulum-host.local/`, and shared files | `nginx` | ISO and Pi |
 | Firewall | Lets in only SSH, Reticulum and the web server | `reticulum-firewall` | ISO and Pi |
 
 The console and SSH login banners list the host's addresses, which the operator hands out to users. The host also
@@ -37,7 +37,8 @@ Partyline 1.0.5 and RetiBBS at a fixed commit; the full list is in
 
 ## Documentation
 
-- [User guide](docs/user-guide.md): for people who connect to a host; which app to use for each service. Short
+- [User guide](ansible/roles/reticulum_host/files/user-guide.md): for people who connect to a host; which app to use
+  for each service. It is also the host's web page, below the host's addresses. Short
   enough to print for an event.
 - [Host guide](docs/host-guide.md): for operators; each program's user, unit, settings and admin tasks, the firewall
   and troubleshooting.
@@ -91,8 +92,9 @@ reticulum_host_extra_interfaces:
               bandwidth: 125000, txpower: 7, spreadingfactor: 8, codingrate: 5}
 ```
 
-The role leaves web file sharing and the firewall off, so they do not clash with a machine's existing setup; turn
-them on with `reticulum_host_http_files: true` and `reticulum_host_firewall: true`.
+The role leaves the web page, the `.local` name and the firewall off, so they do not clash with a machine's existing
+setup; turn them on with `reticulum_host_http_files: true`, `reticulum_host_mdns: true` and
+`reticulum_host_firewall: true`.
 
 The `ansible` folder stands alone; copy it anywhere.
 
@@ -176,7 +178,8 @@ Reticulum identities.
 
 ## After setup
 
-Read the addresses from the login banner and give them to users with the [user guide](docs/user-guide.md). A new
+People on the host's network open `http://reticulum-host.local/` for its addresses and the user guide; no screen or
+SSH is needed. The login banner shows the same addresses. A new
 bulletin board has no admin yet; see [Make the first admin](docs/host-guide.md#make-the-first-admin) in the host
 guide.
 
@@ -187,6 +190,8 @@ existing hosts, and rebuild the ISO and the Pi image.
 
 ## Revision history
 
+- 0.6.0: The web page lists the host's addresses and the user guide, at `http://reticulum-host.local/`; shared
+  files move to `/files/`
 - 0.5.1: User guide; README reorganised by setup method; first admin steps, SSH and the firewall moved in the host
   guide; troubleshooting
 - 0.5.0: LXMF propagation node on by default, with its address in the login banner
