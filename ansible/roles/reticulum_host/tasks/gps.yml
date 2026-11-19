@@ -24,6 +24,12 @@
     enabled: true
   loop: [gpsd, chrony]
 
+# gpsd's own unit only starts when a program connects to it; chrony reads it another way, so start it at boot
+- name: Start gpsd at boot
+  ansible.builtin.command: systemctl add-wants multi-user.target gpsd.service
+  args:
+    creates: /etc/systemd/system/multi-user.target.wants/gpsd.service
+
 - name: Start gpsd and chrony
   ansible.builtin.systemd_service:
     name: "{{ item }}"
