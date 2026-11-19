@@ -163,17 +163,9 @@ Reticulum identities.
 
 ## Use a host
 
-The login banner lists the addresses clients connect to. To check the network:
-
-```bash
-rnstatus
-```
-
-To see a service's log, for example Partyline's:
-
-```bash
-sudo journalctl -u partyline
-```
+The login banner lists the addresses clients connect to. The [host guide](docs/host-guide.md) covers each program:
+which user it runs as, how to start and stop it, where its settings are, and what rerunning the Ansible role
+overwrites.
 
 ### Make the first RetiBBS admin
 
