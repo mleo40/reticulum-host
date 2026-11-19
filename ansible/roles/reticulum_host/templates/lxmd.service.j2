@@ -7,7 +7,7 @@ Requires=rnsd.service
 [Service]
 User={{ reticulum_host_user }}
 ExecStart={{ reticulum_host_venv }}/bin/lxmd \
-  --config {{ reticulum_host_home }}/lxmd \
+  --config {{ reticulum_host_lxmd_dir }} \
   --rnsconfig {{ reticulum_host_rns_dir }} \
   --service
 Restart=on-failure

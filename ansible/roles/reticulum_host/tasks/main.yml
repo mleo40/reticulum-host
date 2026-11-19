@@ -26,7 +26,8 @@
   loop: ["{{ reticulum_host_home }}", "{{ reticulum_host_rns_dir }}", "{{ reticulum_host_retibbs_dir }}",
          "{{ reticulum_host_retibbs_dir }}/themes", "{{ reticulum_host_rngit_dir }}", "{{ reticulum_host_partyline_dir }}",
          "{{ reticulum_host_nomadnet_dir }}", "{{ reticulum_host_nomadnet_dir }}/storage",
-         "{{ reticulum_host_nomadnet_dir }}/storage/pages", "{{ reticulum_host_nomadnet_dir }}/storage/files"]
+         "{{ reticulum_host_nomadnet_dir }}/storage/pages", "{{ reticulum_host_nomadnet_dir }}/storage/files",
+         "{{ reticulum_host_lxmd_dir }}"]
 
 - name: Create the install directory
   ansible.builtin.file:
@@ -93,6 +94,15 @@
   ansible.builtin.template:
     src: nomadnet.config.j2
     dest: "{{ reticulum_host_nomadnet_dir }}/config"
+    owner: "{{ reticulum_host_user }}"
+    group: "{{ reticulum_host_user }}"
+    mode: "0640"
+  notify: Restart reticulum services
+
+- name: Write the LXMF router config
+  ansible.builtin.template:
+    src: lxmd.config.j2
+    dest: "{{ reticulum_host_lxmd_dir }}/config"
     owner: "{{ reticulum_host_user }}"
     group: "{{ reticulum_host_user }}"
     mode: "0640"

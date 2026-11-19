@@ -65,6 +65,7 @@ def main():
     parser.add_argument('--ssh-banner', type=Path, default=None, help='SSH banner file')
     parser.add_argument('--wait', type=int, default=120, help='seconds to wait for identities')
     parser.add_argument('--nomadnet', action='store_true', help='the Nomad Network page node runs here')
+    parser.add_argument('--propagation', action='store_true', help='the LXMF propagation node runs here')
     parser.add_argument('--http-port', type=int, default=0, help='web file sharing port, 0 when off')
     args = parser.parse_args()
 
@@ -74,6 +75,8 @@ def main():
              'partyline': args.home / 'partyline/server_identity'}
     if args.nomadnet:
         files['nomadnet'] = args.home / 'nomadnet/storage/identity'
+    if args.propagation:
+        files['lxmd'] = args.home / 'lxmd/identity'
     # Services create their identities on first start, and DHCP may still be running; the console banner's \\4 shows
     # the address only once an interface has one
     deadline = time.monotonic() + args.wait
@@ -95,6 +98,8 @@ def main():
     nomadnet_path = args.home / 'nomadnet/storage/identity'
     if args.nomadnet or nomadnet_path.is_file():
         rows.append(('Nomad Network pages', destination(load_identity(nomadnet_path), 'nomadnetwork.node')))
+    if args.propagation:
+        rows.append(('LXMF propagation', destination(load_identity(files['lxmd']), 'lxmf.propagation')))
 
     # The console banner uses agetty's \\4, the current IPv4 address; the SSH banner lists them when written
     addresses = ipv4_addresses()

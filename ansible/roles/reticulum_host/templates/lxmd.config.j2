@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# All options: lxmd --exampleconfig
+[propagation]
+  enable_node = {{ 'yes' if reticulum_host_lxmd_propagation else 'no' }}
+  node_name = {{ reticulum_host_lxmd_node_name }}
+  # minutes
+  announce_interval = {{ reticulum_host_lxmd_announce_interval }}
+  announce_at_start = yes
+  autopeer = {{ 'yes' if reticulum_host_lxmd_autopeer else 'no' }}
+  autopeer_maxdepth = {{ reticulum_host_lxmd_autopeer_maxdepth }}
+  # megabytes
+  message_storage_limit = {{ reticulum_host_lxmd_storage_limit }}
+  auth_required = no
+
+[lxmf]
+  display_name = {{ reticulum_host_lxmd_node_name }}
+  announce_at_start = no
+  delivery_transfer_max_accepted_size = 1
+
+[logging]
+  loglevel = {{ reticulum_host_loglevel }}

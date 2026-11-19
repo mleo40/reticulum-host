@@ -9,6 +9,7 @@ reticulum_host_retibbs_dir: "{{ reticulum_host_home }}/retibbs"
 reticulum_host_rngit_dir: "{{ reticulum_host_home }}/rngit"
 reticulum_host_partyline_dir: "{{ reticulum_host_home }}/partyline"
 reticulum_host_nomadnet_dir: "{{ reticulum_host_home }}/nomadnet"
+reticulum_host_lxmd_dir: "{{ reticulum_host_home }}/lxmd"
 
 reticulum_host_install_dir: /opt/reticulum
 reticulum_host_venv: "{{ reticulum_host_install_dir }}/venv"
@@ -50,8 +51,18 @@ reticulum_host_partyline_rooms:
 reticulum_host_nomadnet_node_name: Reticulum host
 reticulum_host_nomadnet_announce_interval: 360
 
-# Systemd units to enable; lxmd and nomadnet are installed but not run by default
-reticulum_host_services: [rnsd, retibbs, rngit, partyline]
+# LXMF propagation node (lxmd): holds LXMF messages, such as RetiBBS board alerts, for people who are offline.
+# The storage limit is in megabytes. Autopeering copies messages to and from other propagation nodes up to the
+# given number of hops away; turn it off, or lower the depth, on hosts whose only links are slow radio.
+reticulum_host_lxmd_propagation: true
+reticulum_host_lxmd_node_name: Reticulum host
+reticulum_host_lxmd_announce_interval: 360
+reticulum_host_lxmd_storage_limit: 500
+reticulum_host_lxmd_autopeer: true
+reticulum_host_lxmd_autopeer_maxdepth: 6
+
+# Systemd units to enable; nomadnet is installed but not run by default
+reticulum_host_services: [rnsd, retibbs, rngit, partyline, lxmd]
 
 # Web file sharing: nginx serves one folder as a plain file list over HTTP, read only. The same folder is shared by
 # the Nomad Network page node. Off by default; the ISO and Pi image turn it on.

@@ -24,8 +24,9 @@ per-machine identifiers from the image and fails if any remain.
 - Partyline 1.0.5 (`partyline-server`, `partyline-client`) with two rooms: Lobby (Opus 8 kbps) and Low bandwidth
   (Codec2 1200 bps)
 - `git` and `ansible`, so the host can configure other machines the same way
-- The host's Reticulum addresses (transport identity, RetiBBS, Partyline, rngit) and TCP address in the console login
-  banner and the SSH login banner, written at boot once the services have created their identities
+- The host's Reticulum addresses (transport identity, RetiBBS, Partyline, rngit, LXMF propagation) and TCP address
+  in the console login banner and the SSH login banner, written at boot once the services have created their
+  identities
 - Services running as the `reticulum` user, with data in `/var/lib/reticulum`:
 
   | Service | What it does | Enabled |
@@ -34,7 +35,7 @@ per-machine identifiers from the image and fails if any remain.
   | `retibbs` | RetiBBS server | yes |
   | `partyline` | Partyline voice room server | yes |
   | `rngit` | Reticulum git repository node | yes |
-  | `lxmd` | LXMF router and propagation node | no |
+  | `lxmd` | LXMF propagation node: holds messages for people who are offline | yes |
   | `nomadnet` | Nomad Network page node, with a starter front page | no |
 
 - On the ISO and the Pi image, a shared folder that anyone on the local network can download from with a web
@@ -208,6 +209,7 @@ existing hosts, and rebuild the ISO.
 
 ## Revision history
 
+- 0.5.0: LXMF propagation node on by default, with its address in the login banner
 - 0.4.0: Nomad Network page node; web file sharing and a firewall on the ISO and Pi image; the ISO's live login
   works and installed systems boot with Secure Boot on
 - 0.3.0: Raspberry Pi image

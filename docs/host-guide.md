@@ -27,7 +27,7 @@ serial radios such as an RNode.
 | RetiBBS | `retibbs` | Yes | `/var/lib/reticulum/retibbs/server_config.json`, `themes/` | `/var/lib/reticulum/retibbs/` |
 | Partyline | `partyline` | Yes | `/var/lib/reticulum/partyline/server.json` | `/var/lib/reticulum/partyline/` |
 | Reticulum git node | `rngit` | Yes | `/var/lib/reticulum/rngit/config` | `/var/lib/reticulum/rngit/` |
-| LXMF router | `lxmd` | No | `/var/lib/reticulum/lxmd/config` | `/var/lib/reticulum/lxmd/` |
+| LXMF propagation node | `lxmd` | Yes | `/var/lib/reticulum/lxmd/config` | `/var/lib/reticulum/lxmd/storage/` |
 | Nomad Network page node | `nomadnet` | No | `/var/lib/reticulum/nomadnet/config` | `/var/lib/reticulum/nomadnet/storage/` |
 | Web file sharing | `nginx` | ISO and Pi image only | `/etc/nginx/sites-available/reticulum-files` | `/srv/reticulum-host/files/` |
 | Firewall | `reticulum-firewall` | ISO and Pi image only | `/etc/reticulum-host/firewall.nft` | |
@@ -82,13 +82,14 @@ Running the role writes these files again and undoes hand edits to them:
 - `/var/lib/reticulum/rns/config`
 - `/var/lib/reticulum/retibbs/server_config.json` and the `default` and `radio` themes
 - `/var/lib/reticulum/partyline/server.json`
+- `/var/lib/reticulum/lxmd/config`
 - `/var/lib/reticulum/nomadnet/config`
 - `/etc/reticulum-host/firewall.nft`, when the firewall is on
 - `/etc/nginx/sites-available/reticulum-files`, when web file sharing is on
 - The unit files in `/etc/systemd/system`
 
-It never touches the RetiBBS databases, the rngit and lxmd configs, Nomad Network pages, or any identity. It adds a
-starter `index.mu` page only when there is none.
+It never touches the RetiBBS databases, the rngit config, stored LXMF messages, Nomad Network pages, or any
+identity. It adds a starter `index.mu` page only when there is none.
 
 ## Reticulum (rnsd)
 
@@ -266,22 +267,33 @@ set it up:
 
 Your identity hash is the "Git Peer Identity" that `rngit -p` prints on the computer you push from.
 
-## LXMF router (lxmd)
+## LXMF propagation node (lxmd)
 
-A store and forward router for LXMF messages, such as those from Sideband, MeshChat or NomadNet. Installed but off.
+Holds LXMF messages, such as those from Sideband, MeshChat or NomadNet, for people who are offline, and hands them
+over when they next connect. RetiBBS board alerts are LXMF messages too, so alerts to a phone that is out of range
+wait here. Messages are end to end encrypted: the host cannot read them, but sees who they are for, their size and
+when they arrive.
 
 - Runs as `reticulum`, unit `lxmd`.
-- Settings: `/var/lib/reticulum/lxmd/config`, created the first time it starts. Not managed by Ansible.
+- Settings: `/var/lib/reticulum/lxmd/config`. Ansible variables: `reticulum_host_lxmd_propagation`,
+  `reticulum_host_lxmd_node_name`, `reticulum_host_lxmd_announce_interval` (minutes),
+  `reticulum_host_lxmd_storage_limit` (megabytes, 500 by default), `reticulum_host_lxmd_autopeer` and
+  `reticulum_host_lxmd_autopeer_maxdepth` (hops). `lxmd --exampleconfig` lists every option.
+- Stored messages: `/var/lib/reticulum/lxmd/storage/`. When the storage limit is reached, the oldest and largest
+  messages are removed first.
+- Identity: `/var/lib/reticulum/lxmd/identity`, which decides the node address. The login banner shows it as "LXMF
+  propagation".
 
-To turn it on:
+Clients use a propagation node only once someone picks it: in Sideband, for example, set it as the propagation node
+in its settings, using the address from the login banner.
 
-```bash
-sudo systemctl enable --now lxmd
-```
+By default the node finds other propagation nodes up to 6 hops away and copies messages to and from them. That is
+cheap over the internet or a local network, but can use much of a slow radio channel. On a host whose only links are
+slow radio, lower `autopeer_maxdepth` or set `autopeer = no`, then restart `lxmd`. On a small SD card, consider a
+lower storage limit.
 
-To make it a propagation node, which holds messages for others while they are offline, set
-`enable_node = yes` in the `[propagation]` section of its settings and restart it. To keep it on when you manage the host with Ansible, add `lxmd`
-to `reticulum_host_services`.
+To turn it off, `sudo systemctl disable --now lxmd`, or with Ansible remove `lxmd` from `reticulum_host_services`. To
+keep `lxmd` running only as a plain router, set `enable_node = no`.
 
 ## Nomad Network pages
 

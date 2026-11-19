@@ -1,13 +1,13 @@
 # {{ ansible_managed }}
 [Unit]
 Description=Show Reticulum addresses in the login banners
-After=rnsd.service retibbs.service rngit.service partyline.service nomadnet.service
+After=rnsd.service retibbs.service rngit.service partyline.service lxmd.service nomadnet.service
 
 [Service]
 Type=oneshot
 ExecStart={{ reticulum_host_venv }}/bin/python {{ reticulum_host_install_dir }}/bin/reticulum-banner.py \
   --home {{ reticulum_host_home }} --port {{ reticulum_host_tcp_port if reticulum_host_tcp_server else 0 }} \
-  --issue /etc/issue.d/reticulum.issue{{ ' --nomadnet' if 'nomadnet' in reticulum_host_services else '' }}{{ (' --http-port ' ~ reticulum_host_http_port) if reticulum_host_http_files else '' }}{{ ' --ssh-banner /etc/ssh/reticulum-banner' if reticulum_host_ssh_banner else '' }}
+  --issue /etc/issue.d/reticulum.issue{{ ' --nomadnet' if 'nomadnet' in reticulum_host_services else '' }}{{ ' --propagation' if 'lxmd' in reticulum_host_services and reticulum_host_lxmd_propagation else '' }}{{ (' --http-port ' ~ reticulum_host_http_port) if reticulum_host_http_files else '' }}{{ ' --ssh-banner /etc/ssh/reticulum-banner' if reticulum_host_ssh_banner else '' }}
 # Redraw waiting console logins with the new banner
 ExecStartPost=-/usr/sbin/agetty --reload
 
