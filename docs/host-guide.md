@@ -155,6 +155,59 @@ Admin tasks are done in its databases with `sqlite3`:
 
 - Back up and restore: see [Back up and restore RetiBBS](retibbs-backup.md).
 
+### Run a second BBS
+
+One host can run more than one BBS, for example one for a club and one for an event. Each has its own folder,
+identity (so its own address), accounts and boards. They share the RetiBBS program and `rnsd`, so the firewall needs
+no change. These steps make `retibbs2`; use another name for a third.
+
+1. Make its folder and copy the themes:
+
+   ```bash
+   sudo install -d -o reticulum -g reticulum /var/lib/reticulum/retibbs2
+   sudo cp -a /var/lib/reticulum/retibbs/themes /var/lib/reticulum/retibbs2/
+   ```
+
+2. Copy the settings and give it its own name in `server_name`:
+
+   ```bash
+   sudo install -o reticulum -g reticulum -m 644 /var/lib/reticulum/retibbs/server_config.json /var/lib/reticulum/retibbs2/
+   sudo nano /var/lib/reticulum/retibbs2/server_config.json
+   ```
+
+3. Make its unit from the first one, pointing at the new folder:
+
+   ```bash
+   sed -e '/Ansible managed/d' -e 's#^Description=.*#Description=RetiBBS second board#' \
+     -e 's#/var/lib/reticulum/retibbs\b#/var/lib/reticulum/retibbs2#g' \
+     /etc/systemd/system/retibbs.service | sudo tee /etc/systemd/system/retibbs2.service
+   ```
+
+   Check that the output names `retibbs2` in `WorkingDirectory` and `--identity-file`.
+
+4. Start it, and start it at boot:
+
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now retibbs2
+   ```
+
+5. Show its address, to give to users. The login banner shows only the first BBS:
+
+   ```bash
+   sudo -u reticulum rnid --config /var/lib/reticulum/rns -i /var/lib/reticulum/retibbs2/server_identity.pem -H retibbs.bbs
+   ```
+
+   The address is the `retibbs.bbs destination` it prints.
+
+6. Make its first admin as in [Make the first RetiBBS admin](../README.md#make-the-first-retibbs-admin), using
+   `/var/lib/reticulum/retibbs2/users.db`. The same `sqlite3` admin tasks above work on its folder.
+
+Start, stop and logs work as for the first, with `retibbs2`. Rerunning the Ansible role leaves `retibbs2` alone, but
+updates the RetiBBS program both use; restart `retibbs2` afterwards. To remove it:
+`sudo systemctl disable --now retibbs2`, then delete `/etc/systemd/system/retibbs2.service` and, if you no longer
+want its accounts and posts, `/var/lib/reticulum/retibbs2`.
+
 ## Partyline
 
 Voice rooms. Clients connect to its address in the login banner with the Partyline client.
