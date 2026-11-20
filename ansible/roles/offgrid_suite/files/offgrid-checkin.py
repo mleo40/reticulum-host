@@ -663,8 +663,9 @@ class Bot:
         roster_file_html = '<code>/var/lib/reticulum/offgrid/roster.txt</code>'
         if roster:
             counts = [sum(1 for rank, _, _ in ranked if rank == n) for n in (2, 1, 0)]
-            summary = (f'{len(checkins)} checked in. Roster: {counts[0]} OK, {counts[1]} late, '
-                       f'{counts[2]} overdue or not heard.')
+            others = sum(1 for source in checkins if source not in {address for address, _ in roster})
+            summary = (f'Roster of {len(roster)}: {counts[0]} OK, {counts[1]} late, {counts[2]} overdue or not heard. '
+                       f'Not on the roster: {others} checked in.')
             roster_html = [f'<h2>Roster</h2>\n<p>The people you expect to hear from, from {roster_file_html}. '
                            f'Late after {args.amber_hours:g} h and overdue after {args.red_hours:g} h without an '
                            'announce or check-in.</p>',
