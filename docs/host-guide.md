@@ -187,14 +187,81 @@ To add an interface, such as an RNode radio, add a section under `[interfaces]` 
     codingrate = 5
 ```
 
-To check the network, as your own user:
+To check the network, run the tools as `reticulum`, with the host's configuration:
 
 ```bash
-rnstatus
-rnpath <destination hash>
+sudo -u reticulum rnstatus --config /var/lib/reticulum/rns
+sudo -u reticulum rnpath --config /var/lib/reticulum/rns <destination hash>
 ```
 
-These connect to the shared instance. The first run creates a `~/.reticulum` folder for your user; that is normal.
+Run as your own user, they read `~/.reticulum` instead, and `rnsd` refuses them. "Up" in `rnstatus` means this end of
+an interface works; a growing received count, or a path from `rnpath`, shows that something is answering.
+
+### How people reach the host
+
+A Reticulum address says who to reach, not where: it is the same over every kind of link. Someone can reach the host
+only through a chain of links, and each link needs its own way to find the next machine.
+
+```mermaid
+flowchart LR
+  subgraph site["Your site"]
+    host["Reticulum host<br/>BBS, check-in bot, Git, pages"]
+    lan["Laptop or phone<br/>on the same network"]
+  end
+  radio["RNode user<br/>in radio range"]
+  direct["Remote user<br/>with your public address"]
+  hub(("Shared hub<br/>community node or VPS"))
+  remote["Remote users<br/>anywhere"]
+  lan <-- "AutoInterface, automatic<br/>or TCP to port 4242" --> host
+  radio <-- "LoRa radio<br/>RNodeInterface" --> host
+  direct -- "TCP to your public IP, port 4242<br/>needs a port forward" --> host
+  host -- "TCPClientInterface<br/>dials out" --> hub
+  remote -- "TCPClientInterface<br/>dials out" --> hub
+```
+
+Arrows point from the side that connects. Because the host routes between its interfaces (transport is on), people on
+any link reach each other too: a radio user can reach someone on the hub.
+
+| Link | Interface | What it needs | Notes |
+|---|---|---|---|
+| Local network | `AutoInterface` | Being on the same network | On by default; finds peers by itself |
+| Local network, by address | `TCPClientInterface` to the host, port 4242 | The host's address on the network | For networks that block multicast |
+| Radio | `RNodeInterface` | Radio range, and the same frequency, bandwidth, spreading factor and coding rate | Slow: a few kbps |
+| Internet, direct | `TCPClientInterface` to your public address | A port forward of TCP 4242 on your router; fails behind carrier NAT | Shows your IP; anyone may connect |
+| Internet, shared hub | `TCPClientInterface` to the hub, on the host and on each user's machine | The hub's name and port; a network name and passphrase if it uses them | No port forward; your IP stays private |
+
+**The hub model** is the usual way to be reachable from anywhere. The host and each remote user dial out to the same
+hub, a community node or a small server you run with `rnsd`. Anyone linked to the hub reaches the host's addresses
+without knowing its IP. Add the hub under `[interfaces]` and restart `rnsd`:
+
+```ini
+  [[Shared hub]]
+    type = TCPClientInterface
+    enabled = yes
+    target_host = hub.example.org
+    target_port = 4242
+    network_name = yourgroupname
+    passphrase = something-long-and-private
+```
+
+Leave out `network_name` and `passphrase` for an open hub. With them, only machines with the same two values can use
+the link, so a private group can share a hub. With Ansible, add the same settings to
+`reticulum_host_extra_interfaces`:
+
+```yaml
+reticulum_host_extra_interfaces:
+  - name: Shared hub
+    options: {type: TCPClientInterface, enabled: "yes", target_host: hub.example.org, target_port: 4242}
+```
+
+Before joining a hub:
+
+- Everyone linked to it can reach every service on the host, not only the BBS. Accounts and Git permissions still
+  apply.
+- Announces from the hub's network can reach your radio. Reticulum caps announce airtime per interface, but on a slow
+  LoRa channel it adds up. Try a hub on a laptop first.
+- A hub is someone else's machine: it relays traffic but cannot read it, since Reticulum encrypts end to end. If it
+  goes away, so does that link; adding two hubs is common.
 
 ## RetiBBS
 
