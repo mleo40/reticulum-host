@@ -95,6 +95,16 @@ def ipv4_addresses():
     return [address for address in output.split() if '.' in address]
 
 
+def service_active(unit):
+    """
+    Check whether a systemd unit is running.
+
+    :param unit: unit name
+    :return: True when active
+    """
+    return subprocess.run(['systemctl', 'is-active', '--quiet', unit], check=False).returncode == 0
+
+
 def banner(rows, network_rows):
     """
     Build the banner text.
@@ -308,7 +318,8 @@ def main():
              'retibbs': args.home / 'retibbs/server_identity.pem',
              'rngit': args.home / 'rngit/repositories_identity',
              'partyline': args.home / 'partyline/server_identity'}
-    if args.nomadnet:
+    # Also when the page node was turned on by hand, which the role's settings do not know about
+    if args.nomadnet or service_active('nomadnet'):
         files['nomadnet'] = args.home / 'nomadnet/storage/identity'
     if args.propagation:
         files['lxmd'] = args.home / 'lxmd/identity'
@@ -331,11 +342,9 @@ def main():
             address_row('RetiBBS', retibbs, 'retibbs.bbs'),
             address_row('Partyline voice', partyline, 'lxst.room'),
             address_row('Git repositories', rngit, 'git.repositories'),
-            address_row('Git pages (Nomad Network)', rngit, 'nomadnetwork.node')]
-    # Also shown when the page node was turned on by hand and has made its identity
-    nomadnet_path = args.home / 'nomadnet/storage/identity'
-    if args.nomadnet or nomadnet_path.is_file():
-        rows.append(address_row('Nomad Network pages', load_identity(nomadnet_path), 'nomadnetwork.node'))
+            address_row('Git pages', rngit, 'nomadnetwork.node')]
+    if 'nomadnet' in files:
+        rows.append(address_row('Nomad Network pages', load_identity(files['nomadnet']), 'nomadnetwork.node'))
     if args.propagation:
         rows.append(address_row('LXMF propagation', load_identity(files['lxmd']), 'lxmf.propagation'))
     for label, path, aspect in extra:

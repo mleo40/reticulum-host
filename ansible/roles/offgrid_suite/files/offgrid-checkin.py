@@ -28,8 +28,8 @@ REPLY_GAP = 20  # seconds between replies to one sender
 HELP_GAP = 3600  # seconds between replies to unknown commands from one sender
 PENDING_FOR = 600  # seconds to keep trying to reach a sender we have no path to
 KINDS = {'lxmf.delivery': 'People', 'lxmf.propagation': 'Propagation nodes', 'retibbs.bbs': 'Bulletin boards',
-         'lxst.room': 'Voice rooms', 'lxst.telephony': 'Phones', 'nomadnetwork.node': 'Page nodes',
-         'git.repositories': 'Git nodes'}
+         'lxst.room': 'Voice rooms', 'lxst.telephony': 'Phones', 'nomadnetwork.node': 'Nomad Network pages',
+         'git.repositories': 'Git repositories'}
 HELP = ('Commands: checkin <your status>, status (notices), nets (schedule), repeaters (nearest), help. '
         'Checking in records your name, status and time for the operators.')
 OPERATOR_HELP = (' Operators: list; notice <text> adds a notice; net <when> | <frequency> | <net> adds a net; '
@@ -686,10 +686,17 @@ class Bot:
         body = [f'<p class="summary">{summary}</p>'] + (roster_html + checkins_html if roster
                                                           else checkins_html + roster_html)
         body.append('<h2>Heard on the network</h2>')
-        for kind, label in list(KINDS.items()) + [('', 'Other')]:
+        # Git servers (rngit) announce their pages as an ordinary page node, with the identity of their repositories
+        git_identities = {identity for _, identity, k, *_ in heard.values() if k == 'git.repositories'}
+
+        def section(row):
+            _, identity, k, *_ = row
+            return 'git.pages' if k == 'nomadnetwork.node' and identity in git_identities else k
+
+        for kind, label in list(KINDS.items()) + [('git.pages', 'Git pages'), ('', 'Other')]:
             rows = [(html.escape(name or ''), code(dest), ago(last, now), ago(first, now), str(count), route(dest))
-                    for dest, _, k, name, first, last, count in sorted(heard.values(), key=lambda row: -row[5])
-                    if k == kind][:500]
+                    for dest, identity, k, name, first, last, count in sorted(heard.values(), key=lambda row: -row[5])
+                    if section((dest, identity, k)) == kind][:500]
             if rows:
                 body += [f'<h3>{label}</h3>', table(rows, ('Name', 'Address', 'Last heard', 'First heard', 'Times',
                                                            'Route'))]

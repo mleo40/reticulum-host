@@ -24,7 +24,7 @@ also prints on one sheet, as an address card to keep with the host.
 | Partyline voice | Voice rooms | Partyline |
 | Nomad Network pages | Text pages, when the operator has turned them on | MeshChat, Nomad Network |
 | Git repositories | Git repositories | `git` with Reticulum installed |
-| Git pages (Nomad Network) | Pages listing the git repositories, their files and history | MeshChat, Columba, Nomad Network |
+| Git pages | Pages listing the git repositories, their files and history | MeshChat, Columba, Nomad Network |
 
 The transport identity line is for operators.
 

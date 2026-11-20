@@ -160,7 +160,8 @@ Check the details on the air before relying on them: lists go out of date.
   attention come first. Without a roster, the page says how to make one, below the check-ins.
 - **Check-ins:** everyone who checked in and is not on the roster; with no roster, everyone who checked in.
 - **Heard on the network:** every announce the host has heard, by kind: people, propagation nodes, bulletin boards,
-  voice rooms, phones, page nodes, git nodes and others, with names, first and last heard, and route.
+  voice rooms, phones, Nomad Network pages, git repositories, git pages and others, with names, first and last heard,
+  and route.
 
 "Last heard" is the last announce. Apps announce when they start and every few hours, so someone can be active
 without being heard for a while; a check-in is the sure sign.

@@ -398,8 +398,8 @@ MeshChat. The page node is installed but off.
   `reticulum_host_nomadnet_announce_interval` (minutes).
 - Pages: `/var/lib/reticulum/nomadnet/storage/pages/`. `index.mu` is the front page; the host starts with a short one.
 - Files to download: `/var/lib/reticulum/nomadnet/storage/files/`.
-- Identity: `storage/identity`, which decides the node address. Once it exists, the login banner shows the address
-  as "Nomad Network pages".
+- Identity: `storage/identity`, which decides the node address. While `nomadnet` runs, the login banner and the web
+  page show the address as "Nomad Network pages".
 
 To turn it on:
 
@@ -407,6 +407,9 @@ To turn it on:
 sudo systemctl enable --now nomadnet
 sudo systemctl restart reticulum-banner
 ```
+
+Restarting `reticulum-banner` puts the address on the banner and the web page now, instead of at the next boot. To
+turn it off again, `sudo systemctl disable --now nomadnet`, then restart `reticulum-banner` the same way.
 
 To keep it on when you manage the host with Ansible, add `nomadnet` to `reticulum_host_services`.
 
