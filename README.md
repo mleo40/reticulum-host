@@ -217,7 +217,8 @@ existing hosts, and rebuild the ISO and the Pi image.
 - 0.9.0: A page of QR codes for the host's addresses, which also prints as an address card, at `/card.html`; one
   notice per line and the net schedule as a table, with commands to add and remove each; a clearer contacts page
   with a summary, names from RetiBBS and Partyline announces, and "on this host" for local programs; a repeater
-  list from a CHIRP or RepeaterBook export, nearest first by GPS; curl and wget
+  list from a CHIRP or RepeaterBook export, nearest first by GPS; "Git pages" named apart from the Nomad Network
+  page node, whose address shows while it runs; curl and wget
 - 0.8.0: Check-in bot and operators' contacts page in the off-grid suite: check-ins, notices, net schedule, a roster
   with overdue warnings, and every announce heard
 - 0.7.0: Health page; GPS and time served to the local network; off-grid images with a Kiwix offline library, from
