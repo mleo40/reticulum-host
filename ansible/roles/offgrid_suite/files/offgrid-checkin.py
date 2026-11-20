@@ -5,6 +5,7 @@ nets.txt.
 """
 import argparse
 import html
+import json
 import os
 import re
 import sqlite3
@@ -14,6 +15,7 @@ from pathlib import Path
 
 import LXMF
 import RNS
+from RNS.vendor import umsgpack
 
 # Marks messages from this bot, so two bots never answer each other
 BOT_FIELD = 0xFB
@@ -91,6 +93,9 @@ def write_page(path, title, body):
     os.replace(temporary, path)
 
 
+NAME_KEYS = ('name', 'server_name', 'display_name', 'title')
+
+
 def announce_name(kind, app_data):
     """
     Read the name a destination announces.
@@ -107,9 +112,33 @@ def announce_name(kind, app_data):
         if kind == 'lxmf.propagation':
             return LXMF.pn_name_from_app_data(app_data) or ''
         text = app_data.decode('utf-8')
+        if text.startswith(('{', '[')):
+            text = first_name(json.loads(text))
+    except UnicodeDecodeError:
+        try:
+            text = first_name(umsgpack.unpackb(app_data))
+        except Exception:
+            return ''
     except Exception:
         return ''
     return text if text.isprintable() and len(text) <= 64 else ''
+
+
+def first_name(data):
+    """
+    Pick the name out of structured announce data: JSON from RetiBBS, msgpack from voice rooms.
+
+    :param data: decoded dict, list or value
+    :return: a name field, or the first text in it, or an empty string
+    """
+    if isinstance(data, dict):
+        data = [data[key] for key in data if str(key).lower() in NAME_KEYS] + list(data.values())
+    for value in data if isinstance(data, (list, tuple)) else [data]:
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', 'replace')
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ''
 
 
 class Store:
@@ -367,7 +396,11 @@ class Bot:
 
         def route(address):
             hops, interface = paths.get(address, (None, ''))
-            return '' if hops is None else html.escape(f'{hops} hop{"s" if hops != 1 else ""}, {interface}')
+            if hops is None:
+                return ''
+            if hops == 0 or interface.startswith('LocalInterface'):
+                return 'on this host'
+            return html.escape(f'{hops} hop{"s" if hops != 1 else ""}, {interface}')
 
         def code(address):
             return f'<code class="addr">{address}</code>'
@@ -386,8 +419,9 @@ class Bot:
                                                 html.escape(checkins.get(address, ('', '', ''))[2]),
                                                 ago(last_heard, now), route(address))))
         rows = [row for _, _, row in sorted(ranked)]
-        body = [f'<h2>Roster</h2>\n<p>Late after {args.amber_hours} h and overdue after {args.red_hours} h without an '
-                'announce or check-in. Edit the roster in <code>/var/lib/reticulum/offgrid/roster.txt</code>.</p>',
+        body = [f'<h2>Roster</h2>\n<p>Late after {args.amber_hours:g} h and overdue after {args.red_hours:g} h '
+                'without an announce or check-in. Edit the roster in '
+                '<code>/var/lib/reticulum/offgrid/roster.txt</code>.</p>',
                 table(rows, ('State', 'Name', 'Address', 'Last check-in', 'Status', 'Last heard', 'Route'))]
         on_roster = {address for address, _ in roster}
         rows = [(html.escape(name), code(source), ago(when, now), html.escape(status), str(count), route(source))
