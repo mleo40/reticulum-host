@@ -1,4 +1,4 @@
-/* Shared by the host's web page and health page */
+/* Shared by the host's web page, address card and health page */
 :root { color-scheme: light dark; --muted: #666; --line: #ccc; --code: #f2f2f2; }
 :root { --ok: #1a7f37; --warn: #9a6700; --bad: #cf222e; }
 @media (prefers-color-scheme: dark) {
@@ -13,9 +13,29 @@ th, td { vertical-align: top; }
 code, pre { background: var(--code); border-radius: 4px; }
 code { padding: 0.1rem 0.25rem; overflow-wrap: anywhere; }
 pre { padding: 0.6rem; overflow-x: auto; }
+.notices li { margin-bottom: 0.4rem; overflow-wrap: anywhere; }
 code.addr { user-select: all; font-size: 1.05rem; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
 .ok { color: var(--ok); font-weight: 600; }
 .warn { color: var(--warn); font-weight: 600; }
 .bad { color: var(--bad); font-weight: 600; }
 .summary { font-size: 1.2rem; }
+svg.qr { width: 7rem; height: 7rem; display: block; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; }
+.cards .item { border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem; break-inside: avoid; }
+.cards h2 { font-size: 1rem; margin: 0.4rem 0 0.2rem; }
+.cards code { font-size: 0.85rem; overflow-wrap: anywhere; }
+.cards svg.qr { width: 9rem; height: 9rem; }
+@media print {
+  :root { color-scheme: light; }
+  body { max-width: none; padding: 0; font-size: 11pt; }
+  .noprint { display: none; }
+  h1 { font-size: 16pt; }
+  ol { margin: 0.3rem 0; }
+  .cards { grid-template-columns: repeat(4, 1fr); gap: 0.3rem; }
+  .cards .item { padding: 0.3rem; }
+  .cards h2 { font-size: 10pt; }
+  .cards code { font-size: 8pt; }
+  .cards svg.qr { width: 3cm; height: 3cm; }
+  code, pre { background: none; }
+}

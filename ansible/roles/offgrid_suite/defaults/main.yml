@@ -25,4 +25,6 @@ offgrid_suite_late_hours: 6
 offgrid_suite_overdue_hours: 24
 # Proof of work senders must add to each message, against flooding; 0 for none
 offgrid_suite_checkin_stamp_cost: 0
+# Where the host is, as "latitude,longitude", to sort repeaters by distance without a GPS fix; empty for none
+offgrid_suite_position: ""
 offgrid_suite_dashboard_users: /etc/reticulum-host/dashboard.htpasswd

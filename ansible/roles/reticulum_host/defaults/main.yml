@@ -19,7 +19,7 @@ reticulum_host_retibbs_version: 7c26d2c05e945f67382695d2f8de21abdb6d7020
 reticulum_host_retibbs_checkout: "{{ reticulum_host_install_dir }}/RetiBBS"
 
 # libopus0 and libogg0 are the Opus codec for partyline
-reticulum_host_apt_packages: [git, ansible, python3-venv, sqlite3, ca-certificates, libopus0, libogg0]
+reticulum_host_apt_packages: [git, ansible, python3-venv, sqlite3, ca-certificates, libopus0, libogg0, curl, wget]
 
 # Commands from the venv linked into /usr/local/bin
 reticulum_host_commands: [rnsd, rnstatus, rnpath, rnprobe, rncp, rnx, rnid, rnir, rnodeconf, rnsh, rnpkg, rngit,

@@ -11,6 +11,9 @@ ExecStart={{ reticulum_host_venv }}/bin/python {{ reticulum_host_install_dir }}/
   --name "{{ offgrid_suite_checkin_name }}" --propagation-identity {{ reticulum_host_lxmd_dir }}/identity \
   --announce-minutes {{ offgrid_suite_checkin_announce_minutes }} --amber-hours {{ offgrid_suite_late_hours }} \
   --red-hours {{ offgrid_suite_overdue_hours }} --stamp-cost {{ offgrid_suite_checkin_stamp_cost }}
+{%- if offgrid_suite_position %} \
+  --position {{ offgrid_suite_position }}
+{%- endif +%}
 Restart=on-failure
 RestartSec=10
 

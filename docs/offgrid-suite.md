@@ -88,8 +88,9 @@ the host's page as "Check-in bot"; it also announces itself every 30 minutes, so
 | Message | Reply |
 |---|---|
 | `checkin <status>`, such as `checkin All 4 of us OK at the school` | Confirms, with the time. A new check-in replaces the sender's earlier one. |
-| `status` | The operators' notices |
+| `status` | The operators' notices, numbered |
 | `nets` | The net schedule |
+| `repeaters` | The five nearest repeaters, from the repeater list |
 | `help`, or anything else | The list of commands |
 
 Operators, listed by LXMF address, also have:
@@ -97,9 +98,14 @@ Operators, listed by LXMF address, also have:
 | Message | Does |
 |---|---|
 | `list` | The number checked in, and the latest ten |
-| `notice <text>` | Replaces the notices |
-| `nets <text>` | Replaces the net schedule |
+| `notice <text>` | Adds a notice, at the top |
+| `notice remove <n>` | Removes notice number `n`, as numbered by `status` |
+| `notice clear` | Removes all notices |
+| `net <when> \| <frequency> \| <net>` | Adds a net to the schedule, such as `net Daily 08:00 \| 146.520 MHz simplex \| Voice check-in net` |
+| `net remove <n>`, `net clear` | Removes one net, or all |
 | `broadcast <text>` | Sends the text to everyone who has checked in |
+
+Up to 20 notices and 20 nets are kept; the oldest go first.
 
 The bot answers a sender at most every 20 seconds, keeps messages short for radio links, never answers another
 copy of itself, and sends replies through the host's propagation node when the sender is offline.
@@ -121,26 +127,46 @@ copy of itself, and sends replies through the host's propagation node when the s
 3. **Roster:** list the people you expect to hear from in `/var/lib/reticulum/offgrid/roster.txt`, one per line: their
    LXMF address, a space, and their name. Read every minute; no restart is needed.
 
-4. **Notices and net schedule:** send `notice` and `nets` from an operator's phone, or edit
-   `/var/lib/reticulum/offgrid/notices.txt` and `nets.txt` on the host.
+4. **Notices and net schedule:** send `notice` and `net` from an operator's phone, or edit
+   `/var/lib/reticulum/offgrid/notices.txt` and `nets.txt` on the host: one notice per line, and one net per line as
+   `when | frequency | net`.
 
 Edit the files as the `reticulum` user, for example `sudo -u reticulum nano /var/lib/reticulum/offgrid/roster.txt`.
+
+### Repeater list
+
+The notices page and the `repeaters` command can list local repeaters. The host cannot look them up once the internet
+is down, so load a list beforehand: export one as CSV from [RepeaterBook](https://www.repeaterbook.com/) or from CHIRP,
+and copy it to the host:
+
+```bash
+sudo install -o reticulum -m 0644 repeaters.csv /var/lib/reticulum/offgrid/repeaters.csv
+```
+
+The bot reads it every minute; no restart is needed. It shows the call sign, output and input frequencies, tone, mode,
+place and notes, up to 50 repeaters. Lists with positions, such as RepeaterBook's, are sorted nearest first, with the
+distance, when the host knows where it is: from a GPS receiver, or from `offgrid_suite_position`, such as
+`"42.36,-71.06"`. CHIRP lists have no positions, so they keep their own order.
+
+Check the details on the air before relying on them: lists go out of date.
 
 ### Contacts page, for operators
 
 `http://reticulum-host.local/contacts/`, behind the password. It is rewritten every minute:
 
+- **Summary:** how many have checked in, and how many on the roster are OK, late, or overdue or not heard.
 - **Roster:** each expected person, marked OK, late (nothing heard for 6 hours), overdue (24 hours) or not heard,
   with their last check-in, status, when the host last heard their announce, and the route to them. People needing
-  attention come first.
-- **Check-ins from others:** people who checked in but are not on the roster.
+  attention come first. Without a roster, the page says how to make one, below the check-ins.
+- **Check-ins:** everyone who checked in and is not on the roster; with no roster, everyone who checked in.
 - **Heard on the network:** every announce the host has heard, by kind: people, propagation nodes, bulletin boards,
   voice rooms, phones, page nodes, git nodes and others, with names, first and last heard, and route.
 
 "Last heard" is the last announce. Apps announce when they start and every few hours, so someone can be active
 without being heard for a while; a check-in is the sure sign.
 
-The notices page, `http://reticulum-host.local/notices/`, is public: notices, the net schedule, and how to check in.
+The notices page, `http://reticulum-host.local/notices/`, is public: the notices, one per line, the net schedule as a
+table, the repeater list when there is one, and how to check in. It does not show check-ins.
 
 ### Privacy
 
@@ -161,3 +187,5 @@ sudo systemctl start offgrid-checkin
 - Ansible variables: `offgrid_suite_checkin` (on or off), `offgrid_suite_checkin_name`, `offgrid_suite_operators`,
   `offgrid_suite_checkin_announce_minutes`, `offgrid_suite_late_hours`, `offgrid_suite_overdue_hours`, and
   `offgrid_suite_checkin_stamp_cost`, a proof of work senders must add to each message, against flooding; 0 for none.
+- `offgrid_suite_position`, as `"latitude,longitude"`, sorts repeaters by distance on hosts without GPS.
+- Files in `/var/lib/reticulum/offgrid/`: `operators.txt`, `roster.txt`, `notices.txt`, `nets.txt`, `repeaters.csv`.

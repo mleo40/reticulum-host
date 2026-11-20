@@ -455,11 +455,19 @@ nomadnet
 
 The host has a web page for the people who connect to it, so a host with no screen can still be found and used. Anyone
 on its local network opens it in a browser at `http://reticulum-host.local/`, or at the host's IP address. The page
-lists the host's addresses, then the [user guide](../ansible/roles/reticulum_host/files/user-guide.md). Under it,
-`/files/` shares one folder as a read-only file list: no uploads, no logins, no scripts.
+lists the host's addresses, then the
+[user guide](../ansible/roles/reticulum_host/files/user-guide.md). Under it, `/files/` shares one folder as a
+read-only file list: no uploads, no logins, no scripts.
+
+`http://reticulum-host.local/card.html`, linked as "Scannable QR codes", shows the addresses, web page and TCP interface
+as QR codes. It prints on one sheet as an address card; print it, or save it as a PDF, and keep it with the host. LXMF
+addresses, such as the check-in bot's, are coded as `lxma://<address>:<public key>`, which Columba scans to add a
+contact; the rest are coded as the plain address or web address. The card shows the IP addresses of when it was
+printed; print a new one if the router gives the host a new address.
 
 - Runs as nginx's own `www-data` user, unit `nginx`.
-- Page: `/srv/reticulum-host/www/index.html`, written by the `reticulum-banner` unit at each boot. Do not edit it;
+- Page: `/srv/reticulum-host/www/index.html` and `card.html`, written by the `reticulum-banner` unit at each boot.
+  Do not edit them;
   edit the guide in the Ansible role instead, at `ansible/roles/reticulum_host/files/user-guide.md`, and rerun the
   role. On the host, the copy the page uses is `/opt/reticulum/share/user-guide.md`.
 - Files: `/srv/reticulum-host/files/`, at `http://reticulum-host.local/files/`. Subfolders show up as folders.

@@ -11,7 +11,9 @@ address instead, such as `http://192.168.1.20/`; the operator can read it from t
 router's list of connected devices.
 
 Each service on the host has its own address, 32 characters long, such as `0e4118a2242aef7d92e41be8c57aa3b8`. Copy
-them exactly.
+them exactly, or open **Scannable QR codes** on the page and scan them with your phone's camera. Columba adds a
+contact straight from the check-in bot's code; for the other codes, the camera shows the address to copy. That page
+also prints on one sheet, as an address card to keep with the host.
 
 | Line | What it is | App |
 |---|---|---|
@@ -22,8 +24,9 @@ them exactly.
 | Partyline voice | Voice rooms | Partyline |
 | Nomad Network pages | Text pages, when the operator has turned them on | MeshChat, Nomad Network |
 | Git repositories | Git repositories | `git` with Reticulum installed |
+| Git pages (Nomad Network) | Pages listing the git repositories, their files and history | MeshChat, Columba, Nomad Network |
 
-The transport identity and git node pages lines are for operators.
+The transport identity line is for operators.
 
 A host started from a USB stick without installing ("live") gets new addresses every time it starts. Open the page
 again after a restart.
@@ -95,12 +98,13 @@ Everything there is public; you cannot upload.
 
 On hosts that have a check-in bot, its address is on the host's web page and in the login banner. Send it a message
 from your messaging app, such as `checkin All 4 of us OK at the school`, and it replies to confirm. The operators see
-your name, status and the time. Send `status` for notices, `nets` for the net schedule, or `help`.
+your name, status and the time. Send `status` for notices, `nets` for the net schedule, `repeaters` for the nearest
+repeaters, or `help`.
 
 ## More on the web page
 
 - **Host health** shows whether the host and its services are working.
-- **Notices and check-in**, on hosts that have them, shows the operators' notices and net schedule.
+- **Notices**, on hosts that have them, shows the operators' notices and net schedule.
 - **Offline library**, on hosts that have one, holds offline copies of Wikipedia, medical and repair guides and
   more, searchable in the browser.
 - **Time:** when there is no internet, a laptop can set its clock from the host. Set its time (NTP) server to

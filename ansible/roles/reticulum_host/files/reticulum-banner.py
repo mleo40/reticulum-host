@@ -35,6 +35,56 @@ def destination(identity, name):
     return RNS.Destination.hash_from_name_and_identity(name, identity).hex()
 
 
+def address_row(label, identity, name):
+    """
+    Make a banner row for one address, with the text its QR code holds.
+
+    :param label: row label
+    :param identity: RNS.Identity or None
+    :param name: full destination name
+    :return: (label, hex hash, QR text or None); LXMF addresses use lxma://hash:public key, which Columba scans
+             to add a contact
+    """
+    value = destination(identity, name)
+    if identity is None:
+        return label, value, None
+    if name == 'lxmf.delivery':
+        return label, value, f'lxma://{value}:{identity.get_public_key().hex()}'
+    return label, value, value
+
+
+def qr_svg(text):
+    """
+    Draw a QR code as a small inline SVG, dark on white so it scans in dark mode too.
+
+    :param text: what the code holds
+    :return: SVG text, or an empty string when the qrcode package is missing
+    """
+    try:
+        import qrcode
+    except ImportError:
+        return ''
+    code = qrcode.QRCode(border=2, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    code.add_data(text)
+    code.make(fit=True)
+    matrix = code.get_matrix()
+    size = len(matrix)
+    runs = []
+    for y, line in enumerate(matrix):
+        x = 0
+        while x < size:
+            if line[x]:
+                start = x
+                while x < size and line[x]:
+                    x += 1
+                runs.append(f'M{start} {y}h{x - start}v1h-{x - start}z')
+            else:
+                x += 1
+    return (f'<svg class="qr" viewBox="0 0 {size} {size}" role="img" aria-label="QR code: {html.escape(text)}" '
+            f'shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="{size}" '
+            f'height="{size}" fill="#fff"/><path fill="#000" d="{"".join(runs)}"/></svg>')
+
+
 def ipv4_addresses():
     """
     List this host's IPv4 addresses, without loopback.
@@ -49,13 +99,13 @@ def banner(rows, network_rows):
     """
     Build the banner text.
 
-    :param rows: list of (label, value) tuples
-    :param network_rows: (label, value) tuples for what is reached over IP, shown first
+    :param rows: list of (label, value, QR text) tuples
+    :param network_rows: the same, for what is reached over IP, shown first
     :return: banner text
     """
     rows = network_rows + rows
-    width = max(len(label) for label, _ in rows)
-    lines = ['Reticulum host'] + [f'  {label.ljust(width)}  {value}' for label, value in rows]
+    width = max(len(row[0]) for row in rows)
+    lines = ['Reticulum host'] + [f'  {label.ljust(width)}  {value}' for label, value, _ in rows]
     return '\n'.join(lines) + '\n\n'
 
 
@@ -69,7 +119,8 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <h1>Reticulum host</h1>
-<p class="when">Host name {name}. Addresses as of {when}. Tap an address to select it, then copy.</p>
+<p class="when">Host name {name}. Addresses as of {when}. Tap an address to select it, then copy. To scan them
+instead, open the <a href="/card.html">scannable QR codes</a>.</p>
 <table>
 {rows}
 </table>
@@ -131,24 +182,87 @@ def page_links(health, folder):
     return links
 
 
+CARD = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR codes {name}</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="card">
+<p class="noprint"><a href="/">Back to the host's page</a>. Scan a code with your phone's camera, or print this
+page, or save it as a PDF, and keep it with the host.</p>
+<h1>Reticulum host {name}</h1>
+<p class="when">Printed from the host on {when}.</p>
+<ol>
+<li>Join the same network as the host, by Wi-Fi or cable.</li>
+<li>Open the host's page, by scanning a web page code below, for the full guide.</li>
+<li>In Sideband, MeshChat or Columba, add a TCP client interface to the host's TCP interface address.</li>
+<li>Message the addresses below from your app; Columba can scan the codes to add a contact.</li>
+</ol>
+<div class="cards">
+{cells}
+</div>
+<p class="when">The Reticulum addresses stay the same. The IP addresses may change when the router gives out new
+ones; print a new card then.</p>
+</body>
+</html>
+"""
+
+
+def write_atomic(path, text):
+    """
+    Replace a web file in one step, so nginx never serves half of it.
+
+    :param path: file to write
+    :param text: content
+    """
+    temporary = path.with_name('.' + path.name + '.tmp')
+    temporary.write_text(text, encoding='utf-8')
+    temporary.chmod(0o644)
+    os.replace(temporary, path)
+
+
 def write_page(web_root, rows, guide, links):
     """
-    Write the web page with the addresses and the user guide.
+    Write the web page with the addresses and the user guide, and the QR code page, which prints as an address card.
 
-    :param web_root: folder nginx serves the page from
-    :param rows: list of (label, value) tuples
+    :param web_root: folder nginx serves the pages from
+    :param rows: list of (label, value, QR text) tuples
     :param guide: user guide Markdown file
     :param links: list of (label, path) tuples shown under the addresses
     """
     name = html.escape(socket.gethostname())
-    cells = '\n'.join(f'<tr><th>{html.escape(label)}</th><td>{value_html(value)}</td></tr>' for label, value in rows)
+    when = time.strftime('%Y-%m-%d %H:%M %Z')
+    cells = '\n'.join(f'<tr><th>{html.escape(label)}</th><td>{value_html(value)}</td></tr>' for label, value, _ in rows)
+    links = links + [('Scannable QR codes', '/card.html')]
     links_html = ' &middot; '.join(f'<a href="{html.escape(path)}">{html.escape(label)}</a>' for label, path in links)
-    page = PAGE.format(name=name, when=time.strftime('%Y-%m-%d %H:%M %Z'), rows=cells, links=links_html,
-                       guide=guide_html(guide))
-    temporary = web_root / '.index.html.tmp'
-    temporary.write_text(page, encoding='utf-8')
-    temporary.chmod(0o644)
-    os.replace(temporary, web_root / 'index.html')
+    write_atomic(web_root / 'index.html', PAGE.format(name=name, when=when, rows=cells, links=links_html,
+                                                      guide=guide_html(guide)))
+    cards = []
+    # The transport identity is for operators, not for people connecting
+    for label, value, code in rows:
+        if label == 'Transport identity':
+            continue
+        for item, item_code in split_codes(value, code):
+            cards.append(f'<div class="item">{qr_svg(item_code) if item_code else ""}<h2>{html.escape(label)}</h2>'
+                         f'<code>{html.escape(item)}</code></div>')
+    write_atomic(web_root / 'card.html', CARD.format(name=name, when=when, cells='\n'.join(cards)))
+
+
+def split_codes(value, code):
+    """
+    Split a row with several items, such as one web address per IP address, into one card each.
+
+    :param value: row value, items separated by ", "
+    :param code: QR text for a single item row; web and TCP addresses always get their own
+    :return: list of (item, QR text or None)
+    """
+    items = value.split(', ')
+    if len(items) == 1:
+        return [(value, code)]
+    return [(item, item if item.startswith('http') or ':' in item else None) for item in items]
 
 
 def value_html(value):
@@ -213,34 +327,36 @@ def main():
     retibbs = load_identity(files['retibbs'])
     rngit = load_identity(files['rngit'])
     partyline = load_identity(files['partyline'])
-    rows = [('Transport identity', transport.hash.hex() if transport else 'not created yet'),
-            ('RetiBBS', destination(retibbs, 'retibbs.bbs')),
-            ('Partyline voice', destination(partyline, 'lxst.room')),
-            ('Git repositories', destination(rngit, 'git.repositories')),
-            ('Git node pages', destination(rngit, 'nomadnetwork.node'))]
+    rows = [('Transport identity', transport.hash.hex() if transport else 'not created yet', None),
+            address_row('RetiBBS', retibbs, 'retibbs.bbs'),
+            address_row('Partyline voice', partyline, 'lxst.room'),
+            address_row('Git repositories', rngit, 'git.repositories'),
+            address_row('Git pages (Nomad Network)', rngit, 'nomadnetwork.node')]
     # Also shown when the page node was turned on by hand and has made its identity
     nomadnet_path = args.home / 'nomadnet/storage/identity'
     if args.nomadnet or nomadnet_path.is_file():
-        rows.append(('Nomad Network pages', destination(load_identity(nomadnet_path), 'nomadnetwork.node')))
+        rows.append(address_row('Nomad Network pages', load_identity(nomadnet_path), 'nomadnetwork.node'))
     if args.propagation:
-        rows.append(('LXMF propagation', destination(load_identity(files['lxmd']), 'lxmf.propagation')))
+        rows.append(address_row('LXMF propagation', load_identity(files['lxmd']), 'lxmf.propagation'))
     for label, path, aspect in extra:
-        rows.append((label, destination(load_identity(path), aspect)))
+        rows.append(address_row(label, load_identity(path), aspect))
 
     # The console banner uses agetty's \\4, the current IPv4 address; the SSH banner lists them when written
     addresses = ipv4_addresses()
-    console_rows = [('TCP interface', f'\\4:{args.port}' if args.port else 'off')]
+    console_rows = [('TCP interface', f'\\4:{args.port}' if args.port else 'off', None)]
     tcp = (', '.join(f'{a}:{args.port}' for a in addresses) or 'no address') if args.port else 'off'
-    ssh_rows = [('TCP interface', tcp)]
+    ssh_rows = [('TCP interface', tcp, tcp if args.port and len(addresses) == 1 else None)]
     if args.http_port:
         suffix = '' if args.http_port == 80 else f':{args.http_port}'
         # agetty's \\n is the host name
         if args.mdns:
-            console_rows.append(('Web page', f'http://\\n.local{suffix}/'))
-            ssh_rows.append(('Web page', f'http://{socket.gethostname()}.local{suffix}/'))
-        console_rows.append(('Web page' if not args.mdns else 'Web page by IP', f'http://\\4{suffix}/'))
-        ssh_rows.append(('Web page' if not args.mdns else 'Web page by IP',
-                         ', '.join(f'http://{a}{suffix}/' for a in addresses) or 'no address'))
+            local = f'http://{socket.gethostname()}.local{suffix}/'
+            console_rows.append(('Web page', f'http://\\n.local{suffix}/', None))
+            ssh_rows.append(('Web page', local, local))
+        by_ip = [f'http://{a}{suffix}/' for a in addresses]
+        console_rows.append(('Web page' if not args.mdns else 'Web page by IP', f'http://\\4{suffix}/', None))
+        ssh_rows.append(('Web page' if not args.mdns else 'Web page by IP', ', '.join(by_ip) or 'no address',
+                         by_ip[0] if len(by_ip) == 1 else None))
     args.issue.write_text(banner(rows, console_rows))
     if args.ssh_banner:
         args.ssh_banner.write_text(banner(rows, ssh_rows))

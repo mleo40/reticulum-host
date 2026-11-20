@@ -31,7 +31,7 @@ images hold no per-machine identifiers; their builds fail if any remain.
 | Partyline | Voice rooms: Lobby (Opus 8 kbps) and Low bandwidth (Codec2 1200 bps) | `partyline` | yes |
 | Reticulum git node | Git repositories, cloned with `git clone rns://...` | `rngit` | yes |
 | Nomad Network page node | Text pages, with a starter front page | `nomadnet` | no |
-| Web page | The host's addresses and the user guide, and shared files | `nginx` | yes |
+| Web page | The host's addresses and their QR codes, the user guide, and shared files | `nginx` | yes |
 | `.local` name | Opens the web page at `http://reticulum-host.local/` without knowing the IP address | `avahi-daemon` | yes |
 | Health page | Services, Reticulum interfaces, time, GPS, power and disks at a glance | `reticulum-health.timer` | yes |
 | GPS and time | Keeps the clock right from a GPS receiver without internet, and serves it to the network | `gpsd`, `chrony` | yes |
@@ -214,6 +214,10 @@ existing hosts, and rebuild the ISO and the Pi image.
 
 ## Revision history
 
+- 0.9.0: A page of QR codes for the host's addresses, which also prints as an address card, at `/card.html`; one
+  notice per line and the net schedule as a table, with commands to add and remove each; a clearer contacts page
+  with a summary, names from RetiBBS and Partyline announces, and "on this host" for local programs; a repeater
+  list from a CHIRP or RepeaterBook export, nearest first by GPS; curl and wget
 - 0.8.0: Check-in bot and operators' contacts page in the off-grid suite: check-ins, notices, net schedule, a roster
   with overdue warnings, and every announce heard
 - 0.7.0: Health page; GPS and time served to the local network; off-grid images with a Kiwix offline library, from

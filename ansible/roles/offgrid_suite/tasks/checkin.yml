@@ -82,7 +82,7 @@
     dest: "/etc/reticulum-host/links.d/{{ item.name }}"
     mode: "0644"
   loop:
-    - {name: 40-notices, content: "Notices and check-in|/notices/"}
+    - {name: 40-notices, content: "Notices|/notices/"}
     - {name: 90-contacts, content: "Contacts (operators)|/contacts/"}
 
 - name: Show the bot's address in the login banner and on the page
